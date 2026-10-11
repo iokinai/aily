@@ -20,4 +20,5 @@ target/
 .env
 *.sqlite
 *.db
+*.sql
 dist/

@@ -22,7 +22,7 @@ export class Api {
     return result as SessionData;
   }
 
-  async start(includeNsfw: boolean): Promise<DanbooruPost> {
+  async start(includeNsfw: boolean): Promise<SessionData> {
     const response = await fetch(
       `${this.url}/start?include_nsfw=${includeNsfw}`,
       {
@@ -36,7 +36,7 @@ export class Api {
     }
 
     const result = await response.json();
-    return result as DanbooruPost;
+    return result as SessionData;
   }
 
   async guess(
@@ -52,7 +52,6 @@ export class Api {
     );
 
     if (!response.ok) {
-      console.log(await response.json());
       throw new Error("Failed to guess");
     }
 

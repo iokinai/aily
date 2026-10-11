@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
 };
 
-use axum_extra::extract::{CookieJar, cookie::Cookie};
+use axum_extra::extract::CookieJar;
 
 use log::{error, warn};
 use uuid::Uuid;
@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::{
     errors::AilyError,
     game::Session,
-    get_new_session_exptime, get_new_session_lifetime,
+    get_new_session_exptime,
     http::{
         AppState, GuessQuery, HttpDanbooruPost, HttpSession, LoggedSession, RandomPostRequest,
         proxy_query::ProxyQuery,
@@ -38,7 +38,7 @@ pub async fn random_post(
 pub async fn start_game(
     State(state): State<AppState>,
     cookies: CookieJar,
-) -> Result<(CookieJar, Json<HttpDanbooruPost>), AilyError> {
+) -> Result<(CookieJar, Json<HttpSession>), AilyError> {
     let id = Uuid::new_v4().to_string();
 
     let post = state
@@ -53,7 +53,10 @@ pub async fn start_game(
 
     let cookies = cookies.add(make_new_session_cookie(id));
 
-    Ok((cookies, Json(HttpDanbooruPost::from(&post))))
+    Ok((
+        cookies,
+        Json(HttpSession::from(&GameSession::new(vec![], post))),
+    ))
 }
 
 pub async fn guess(
@@ -136,12 +139,23 @@ pub async fn proxy_image_handler(
         .get(query.url())
         .send()
         .await
-        .map_err(|_| AilyError::ProxyError)
-        .inspect_err(|e| error!("Error while sending request in proxy: {}", e))?;
+        .inspect_err(|e| {
+            let s = if let Some(s) = e.status() {
+                s.to_string()
+            } else {
+                "<no status>".to_string()
+            };
+            error!("Error while sending request in proxy: {}", s)
+        })
+        .map_err(|_| AilyError::ProxyError)?;
 
     if !resp.status().is_success() {
-        return Err(AilyError::ProxyError)
-            .inspect_err(|e| error!("Remote server returned error in proxy: {}", e));
+        error!("Unknown error in proxy with status: {}", resp.status());
+        if let Ok(text) = resp.text().await {
+            error!("Remote server returned error in proxy: {}", text);
+        }
+
+        return Err(AilyError::ProxyError);
     }
 
     let content_type = resp

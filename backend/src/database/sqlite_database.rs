@@ -48,10 +48,8 @@ impl Database for SqliteDatabase {
             .limit(1)
             .load::<DbDanbooruPost>(&mut conn)
             .await
-            .map_err(|e| {
-                println!("{}", e);
-                AilyError::Unknown
-            })?;
+            .inspect_err(|e| error!("Error while getting random post: {}", e))
+            .map_err(|e| AilyError::Unknown)?;
 
         let post = posts.into_iter().next().ok_or(AilyError::NotFound)?;
 

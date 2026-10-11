@@ -5,7 +5,7 @@ interface FooterProps {
 
 export function Footer({ nsfw, setNsfw }: FooterProps) {
   return (
-    <footer className="flex items-center justify-between border-t border-zinc-800 pt-5">
+    <footer className="mx-auto w-full max-w-5xl px-4 sm:px-6 flex items-center justify-between border-t border-zinc-800 pt-5">
       <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-zinc-300">
         <input
           type="checkbox"
