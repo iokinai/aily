@@ -1,0 +1,21 @@
+[package]
+name = "aily-backend"
+version = "1.0.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8.9", features = ["macros"] }
+tokio = { version = "1.53.2", features = ["full"] }
+aily-models = { path = "../models" }
+diesel = { version = "2.3.14", features = ["sqlite"] }
+diesel-async = { version = "0.9.2", features = ["sqlite", "deadpool"] }
+async-trait = "0.1.92"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.152"
+trl = "1.2.2"
+uuid = { version = "1.28.0", features = ["v4"] }
+dotenv = "0.15.0"
+tower-http = { version = "0.7.1", features = ["cors"] }
+reqwest = "0.13.5"
+log = "0.4.34"
+tracing-subscriber = "0.3.23"

@@ -1,0 +1,60 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+    --color-paper: #f3f0e8;
+    --color-ink: #151713;
+    --color-cobalt: #214bd8;
+    --color-cobalt-dark: #1739ad;
+    --color-vermillion: #e6462f;
+    --font-sans: "DM Sans", sans-serif;
+    --font-display: "Manrope", sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    background:
+        radial-gradient(
+            circle at 8% 12%,
+            rgb(230 70 47 / 0.07),
+            transparent 22rem
+        ),
+        radial-gradient(
+            circle at 92% 85%,
+            rgb(33 75 216 / 0.07),
+            transparent 24rem
+        ),
+        var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.art-frame {
+    aspect-ratio: 4 / 3;
+    border-radius: 1.25rem;
+    box-shadow:
+        0 1.5rem 3.75rem rgb(21 23 19 / 0.12),
+        0 0.25rem 1rem rgb(21 23 19 / 0.08);
+}
+
+@media (max-width: 640px) {
+    .art-frame {
+        aspect-ratio: 4 / 4.4;
+        border-radius: 1rem;
+    }
+}
