@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Api } from "./api/api";
 import DanbooruPost from "./api/danbooruPost";
 import { Header } from "./components/Header";
@@ -17,19 +17,36 @@ export default function App() {
   const [nsfw, setNsfw] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const initialized = useRef(false);
+
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     setLoading(true);
     api
-      .start(nsfw)
-      .then((post) => {
-        setCurrentPost(post);
+      .getSession()
+      .then((session) => {
+        setCurrentPost(session.current);
+
+        const prevList = session.prev || [];
+        const restoredTotal = prevList.length;
+        const restoredScore = prevList.filter(([_, guessed]) => guessed).length;
+
+        setTotal(restoredTotal);
+        setScore(restoredScore);
+
         setLoading(false);
       })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
+      .catch(() => {
+        api.start(nsfw).then((post) => {
+          setCurrentPost(post);
+          setScore(0);
+          setTotal(0);
+          setLoading(false);
+        });
       });
-  }, [nsfw]);
+  }, []);
 
   const handleGuess = async (aiGuess: boolean) => {
     if (answer !== null || !currentPost) return;

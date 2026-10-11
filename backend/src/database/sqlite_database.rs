@@ -1,6 +1,6 @@
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
-use aily_models::GameDanbooruPost;
+use aily_models::{GameDanbooruPost, GameSession};
 use async_trait::async_trait;
 use diesel::{ExpressionMethods, QueryDsl, SqliteConnection};
 use diesel_async::{
@@ -8,10 +8,12 @@ use diesel_async::{
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool},
     sync_connection_wrapper::SyncConnectionWrapper,
 };
+use log::error;
 
 use crate::{
     database::{Database, db_danbooru_post::DbDanbooruPost},
     errors::AilyError,
+    game::Session,
     schema::Arts,
 };
 
@@ -69,5 +71,47 @@ impl Database for SqliteDatabase {
         let post = posts.into_iter().next().ok_or(AilyError::NotFound)?;
 
         Ok(GameDanbooruPost::from(&post))
+    }
+
+    async fn get_session(&self, sess: &Session) -> Result<GameSession, AilyError> {
+        let mut ids = Vec::new();
+        ids.reserve(sess.posts().len() + 1);
+
+        ids.push(*sess.current());
+        ids.extend(sess.posts().iter().map(|p| p.0));
+
+        let mut conn = self
+            .pool
+            .get()
+            .await
+            .inspect_err(|e| error!("Could not get connection from pool: {}", e))
+            .map_err(|_| AilyError::Unknown)?;
+
+        let raw_posts = Arts::table
+            .select(Arts::all_columns)
+            .filter(Arts::id.eq_any(ids))
+            .load::<DbDanbooruPost>(&mut conn)
+            .await
+            .map_err(|_| AilyError::Unknown)?;
+
+        let posts_map: HashMap<i32, GameDanbooruPost> = raw_posts
+            .into_iter()
+            .map(|post| (*post.id(), GameDanbooruPost::from(&post)))
+            .collect();
+
+        let current_id = *sess.current();
+        let current = posts_map.get(&current_id).cloned().ok_or_else(|| {
+            error!("Current post ID {} not found in database", current_id);
+            AilyError::Unknown
+        })?;
+
+        let mut prev = Vec::with_capacity(sess.posts().len());
+        for &(post_id, flag) in sess.posts().iter() {
+            if let Some(game_post) = posts_map.get(&post_id) {
+                prev.push((game_post.clone(), flag));
+            }
+        }
+
+        Ok(GameSession::new(prev, current))
     }
 }

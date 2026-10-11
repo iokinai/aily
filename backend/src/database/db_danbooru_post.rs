@@ -1,10 +1,12 @@
 use aily_models::GameDanbooruPost;
 use diesel::deserialize::{Queryable, QueryableByName};
+use trl::Trl;
 
 use crate::schema::Arts;
 
-#[derive(Queryable, QueryableByName)]
+#[derive(Queryable, QueryableByName, Trl)]
 #[diesel(table_name = Arts)]
+#[getters]
 pub struct DbDanbooruPost {
     id: i32,
     danbooru_id: Option<i32>,

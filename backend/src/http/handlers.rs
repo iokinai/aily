@@ -1,20 +1,25 @@
+use aily_models::GameSession;
 use axum::{
     Json,
     extract::{Query, State},
     http::{HeaderMap, HeaderValue},
     response::IntoResponse,
 };
+
+use axum_extra::extract::{CookieJar, cookie::Cookie};
+
 use log::{error, warn};
 use uuid::Uuid;
 
 use crate::{
     errors::AilyError,
     game::Session,
-    get_new_session_lifetime,
+    get_new_session_exptime, get_new_session_lifetime,
     http::{
-        AppState, GuessQuery, HttpDanbooruPost, LoggedSession, RandomPostRequest,
+        AppState, GuessQuery, HttpDanbooruPost, HttpSession, LoggedSession, RandomPostRequest,
         proxy_query::ProxyQuery,
     },
+    make_new_session_cookie,
 };
 
 pub async fn random_post(
@@ -32,7 +37,8 @@ pub async fn random_post(
 
 pub async fn start_game(
     State(state): State<AppState>,
-) -> Result<Json<(String, HttpDanbooruPost)>, AilyError> {
+    cookies: CookieJar,
+) -> Result<(CookieJar, Json<HttpDanbooruPost>), AilyError> {
     let id = Uuid::new_v4().to_string();
 
     let post = state
@@ -41,19 +47,21 @@ pub async fn start_game(
         .await
         .inspect_err(|e| error!("Error while getting random post in start: {}", e))?;
 
-    let session = Session::new(vec![], *post.id(), get_new_session_lifetime());
+    let session = Session::new(vec![], *post.id(), get_new_session_exptime());
 
     state.sessions.write().await.insert(id.clone(), session);
 
-    Ok(Json((id, HttpDanbooruPost::from(&post))))
+    let cookies = cookies.add(make_new_session_cookie(id));
+
+    Ok((cookies, Json(HttpDanbooruPost::from(&post))))
 }
 
 pub async fn guess(
     State(state): State<AppState>,
     Query(query): Query<GuessQuery>,
     logged_session: LoggedSession,
-) -> Result<Json<(bool, HttpDanbooruPost)>, AilyError> {
-    let session_id = &logged_session.0;
+) -> Result<(CookieJar, Json<(bool, HttpDanbooruPost)>), AilyError> {
+    let session_id = &logged_session.1;
 
     let post_id = {
         let sessions = state.sessions.read().await;
@@ -82,11 +90,37 @@ pub async fn guess(
         let session = sessions
             .get_mut(session_id)
             .ok_or(AilyError::InvalidSession)?;
-        session.posts().push((*post.id(), guessed_correctly));
+        session.posts_mut().push((*post.id(), guessed_correctly));
         session.set_current(*next.id());
     }
 
-    Ok(Json((guessed_correctly, HttpDanbooruPost::from(&next))))
+    Ok((
+        logged_session.0,
+        Json((guessed_correctly, HttpDanbooruPost::from(&next))),
+    ))
+}
+
+pub async fn current_session_post(
+    State(state): State<AppState>,
+    logged_session: LoggedSession,
+) -> Result<(CookieJar, Json<HttpDanbooruPost>), AilyError> {
+    let session_id = logged_session.1;
+
+    let current = {
+        let sessions = state.sessions.read().await;
+        let session = sessions.get(&session_id).ok_or(AilyError::InvalidSession)?;
+
+        *session.current()
+    };
+
+    let post = state
+        .database
+        .get_post_by_id(current)
+        .await
+        .inspect_err(|e| error!("Error getting post in current session post: {}", e))
+        .map_err(|_| AilyError::Unknown)?;
+
+    Ok((logged_session.0, Json(HttpDanbooruPost::from(&post))))
 }
 
 pub async fn proxy_image_handler(
@@ -130,4 +164,27 @@ pub async fn proxy_image_handler(
     );
 
     Ok((headers, bytes).into_response())
+}
+
+pub async fn current_session(
+    State(state): State<AppState>,
+    logged_session: LoggedSession,
+) -> Result<(CookieJar, Json<HttpSession>), AilyError> {
+    let session_id = logged_session.1;
+
+    let session = {
+        let sessions = state.sessions.read().await;
+        sessions
+            .get(&session_id)
+            .ok_or(AilyError::InvalidSession)?
+            .clone()
+    };
+
+    let game_session = state
+        .database
+        .get_session(&session)
+        .await
+        .inspect_err(|e| error!("Invalid session from database: {}", e))?;
+
+    Ok((logged_session.0, Json(HttpSession::from(&game_session))))
 }

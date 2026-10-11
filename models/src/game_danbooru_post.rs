@@ -1,6 +1,6 @@
 use trl::Trl;
 
-#[derive(Trl)]
+#[derive(Trl, Clone)]
 #[getters]
 #[constructor]
 pub struct GameDanbooruPost {

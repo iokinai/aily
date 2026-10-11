@@ -2,10 +2,11 @@ use std::time::Instant;
 
 use trl::Trl;
 
-#[derive(Trl)]
+#[derive(Trl, Clone)]
 #[constructor]
 pub struct Session {
-    #[get(mut ref)]
+    #[get]
+    #[get(mut ref, name = posts_mut)]
     posts: Vec<(i32, bool)>,
     #[set]
     #[get]
