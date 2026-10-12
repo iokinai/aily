@@ -5,7 +5,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use axum_extra::extract::cookie::Cookie;
 use reqwest::header;
 use tokio::{self, net::TcpListener, sync::RwLock};
@@ -15,7 +18,7 @@ use crate::{
     database::SqliteDatabase,
     http::{
         AppState,
-        handlers::{current_session, current_session_post, guess, proxy_image_handler, start_game},
+        handlers::{get_current_session, make_guess, proxy_image_handler, start_new_session},
     },
     session_garbage_collector::spawn_session_gc_task,
 };
@@ -72,13 +75,17 @@ async fn main() {
         .allow_headers([header::CONTENT_TYPE])
         .allow_credentials(true);
 
+    let api_routes = Router::new()
+        .route("/session", get(get_current_session).post(start_new_session))
+        .route("/proxy", get(proxy_image_handler));
+
+    let aily_routes = Router::new().route("/", post(make_guess));
+
     let app = Router::new()
-        //.route("/random", get(random_post))
-        .route("/start", get(start_game))
-        .route("/guess", get(guess))
-        .route("/proxy", get(proxy_image_handler))
-        .route("/current", get(current_session_post))
-        .route("/session", get(current_session))
+        .nest(
+            "/api",
+            Router::new().merge(api_routes).nest("/aily", aily_routes),
+        )
         .with_state(state)
         .layer(cors);
 

@@ -3,7 +3,7 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 
 interface PageLayoutProps {
-  children: JSX.Element[] | JSX.Element;
+  children?: JSX.Element[] | JSX.Element | undefined | null;
   nsfw: boolean;
   setNsfw: (v: boolean) => void;
 }

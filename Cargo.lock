@@ -17,6 +17,8 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "serde_repr",
+ "thiserror",
  "time",
  "tokio",
  "tower-http 0.7.1",
@@ -1582,6 +1584,17 @@ dependencies = [
  "itoa",
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "serde_repr"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d3b1629de253c70a0508c3899572da79ca359fdab27c7920ff00406df418906"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.7",
 ]
 
 [[package]]

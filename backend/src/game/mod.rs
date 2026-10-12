@@ -1,3 +1,3 @@
-mod session;
+mod game_session;
 
-pub use session::Session;
+pub use game_session::GameSession;

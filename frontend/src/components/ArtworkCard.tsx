@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import DanbooruPost from "../api/danbooruPost";
+import { ProxyImage } from "./ProxyImage";
 
 interface ArtworkCardProps {
   post: DanbooruPost;
@@ -16,11 +17,11 @@ export function ArtworkCard({
   onGuess,
   onNext,
 }: ArtworkCardProps) {
-  const [imageLoaded, setImageLoaded] = useState(false);
-
-  useEffect(() => {
-    setImageLoaded(false);
-  }, [post.id]);
+  const [canGuess, setCanGuess] = useState(false);
+  const guess = (ai: boolean) => {
+    setCanGuess(false);
+    onGuess(ai);
+  };
 
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center py-8 sm:py-10">
@@ -38,29 +39,17 @@ export function ArtworkCard({
         </p>
       </div>
 
-      <div className="art-frame relative overflow-hidden bg-zinc-900 rounded-2xl flex items-center justify-center min-h-[350px] max-h-[60vh]">
-        {!imageLoaded && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-900/90 z-10 transition-opacity">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-400">
-              Загрузка работы...
-            </p>
-          </div>
-        )}
-
-        <img
+      <div className="art-frame relative overflow-hidden bg-zinc-900 rounded-2xl flex items-center justify-center min-h-87.5 max-h-[60vh]">
+        <ProxyImage
           key={post.id}
-          src={`${window.APP_PATH}/proxy?url=${encodeURIComponent(post.path)}`}
-          alt="Artwork"
-          onLoad={() => setImageLoaded(true)}
-          className={`max-h-[60vh] w-full object-contain transition-opacity duration-300 ${
-            imageLoaded ? "opacity-100" : "opacity-0"
-          }`}
+          className="max-h-[60vh] w-full object-contain transition-opacity duration-300"
+          src={post.path}
+          onLoadedWithoutError={() => setCanGuess(true)}
         />
         <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl" />
 
         {answer !== null && (
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-5 pb-5 pt-20 text-white sm:px-7 sm:pb-7 z-20">
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 bg-linear-to-t from-black/90 via-black/50 to-transparent px-5 pb-5 pt-20 text-white sm:px-7 sm:pb-7 z-20">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
                 {isCorrect ? "Вы угадали" : "Неверно"}
@@ -93,17 +82,17 @@ export function ArtworkCard({
       <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4">
         <button
           type="button"
-          onClick={() => onGuess(true)}
-          disabled={answer !== null || !imageLoaded}
-          className="group flex min-h-16 items-center justify-center rounded-full border-2 border-blue-600 bg-blue-600 px-4 text-center text-xs font-bold uppercase tracking-[0.1em] text-white transition hover:-translate-y-0.5 hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-default disabled:opacity-45 disabled:hover:translate-y-0 sm:text-sm"
+          onClick={() => guess(true)}
+          disabled={answer !== null || !canGuess}
+          className="group flex min-h-16 items-center justify-center rounded-full border-2 border-blue-600 bg-blue-600 px-4 text-center text-xs font-bold uppercase tracking-widest text-white transition hover:-translate-y-0.5 hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-default disabled:opacity-45 disabled:hover:translate-y-0 sm:text-sm"
         >
           Сгенерировано ИИ
         </button>
         <button
           type="button"
-          onClick={() => onGuess(false)}
-          disabled={answer !== null || !imageLoaded}
-          className="flex min-h-16 items-center justify-center rounded-full border-2 border-zinc-700 bg-transparent px-4 text-center text-xs font-bold uppercase tracking-[0.1em] text-zinc-100 transition hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 disabled:cursor-default disabled:opacity-45 disabled:hover:translate-y-0 sm:text-sm"
+          onClick={() => guess(false)}
+          disabled={answer !== null || !canGuess}
+          className="flex min-h-16 items-center justify-center rounded-full border-2 border-zinc-700 bg-transparent px-4 text-center text-xs font-bold uppercase tracking-widest text-zinc-100 transition hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 disabled:cursor-default disabled:opacity-45 disabled:hover:translate-y-0 sm:text-sm"
         >
           Сделано человеком
         </button>

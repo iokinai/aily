@@ -1,5 +1,6 @@
 mod database;
-mod db_danbooru_post;
+mod db_aily_post;
+mod db_artwork;
 mod sqlite_database;
 
 pub use database::Database;

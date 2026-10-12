@@ -4,8 +4,7 @@ import { Api } from "../api/api";
 import { SessionData } from "../api/sessionData";
 
 interface GamePageProps {
-  loading: boolean;
-  session: SessionData | null;
+  session: SessionData;
   api: Api;
   nsfw: boolean;
   setNsfw: (value: boolean) => void;
@@ -13,7 +12,6 @@ interface GamePageProps {
 }
 
 export function AilyGamePage({
-  loading,
   session,
   api,
   nsfw,
@@ -23,7 +21,6 @@ export function AilyGamePage({
   return (
     <PageLayout nsfw={nsfw} setNsfw={setNsfw}>
       <AilyGame
-        loading={loading}
         session={session}
         api={api}
         nsfw={nsfw}
