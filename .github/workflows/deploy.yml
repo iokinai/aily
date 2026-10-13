@@ -60,8 +60,7 @@ jobs:
         run: |
           pwd
           ls -la
-          ls -la frontend/
-          ls -la frontend/dist
+          ls -la dist
       - name: Copy frontend files to the server
         uses: appleboy/scp-action@v0.1.7
         with:
