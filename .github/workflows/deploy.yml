@@ -25,7 +25,7 @@ jobs:
       with:
         host: ${{secrets.REMOTE_HOST}}
         username: ${{secrets.REMOTE_USER}}
-        key: ${{secrets.SSH_KEY}}
+        password: ${{secrets.SSH_KEY}}
         port: 22
         source: ./target/release/aily-backend
         target: ${{secrets.REMOTE_BACKEND_PATH}}
@@ -35,7 +35,7 @@ jobs:
       with:
         host: ${{secrets.REMOTE_HOST}}
         username: ${{secrets.REMOTE_USER}}
-        key: ${{secrets.SSH_KEY}}
+        password: ${{secrets.SSH_KEY}}
         port: 22
         scripts: "systemctl restart aily" 
 
@@ -61,7 +61,7 @@ jobs:
         with:
           host: ${{secrets.REMOTE_HOST}}
           username: ${{secrets.REMOTE_USER}}
-          key: ${{secrets.SSH_KEY}}
+          password: ${{secrets.SSH_KEY}}
           port: 22
           source: frontend/dist/*
           target: ${{secrets.REMOTE_FRONTEND_PATH}}
@@ -71,7 +71,7 @@ jobs:
         with:
           host: ${{secrets.REMOTE_HOST}}
           username: ${{secrets.REMOTE_USER}}
-          key: ${{secrets.SSH_KEY}}
+          password: ${{secrets.SSH_KEY}}
           port: 22
           scripts: "systemctl restart nginx" 
   
