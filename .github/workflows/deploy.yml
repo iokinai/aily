@@ -1,0 +1,73 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  backend:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --release
+    - name: Run tests
+      run: cargo test --verbose
+    - name: Copy backend files to the server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{secrets.REMOTE_HOST}}
+        user: ${{secrets.REMOTE_USER}}
+        key: ${{secrets.SSH_KEY}}
+        port: 22
+        source: ./target/release/aily-backend
+        target: ${{secrets.REMOTE_BACKEND_PATH}}
+        strip_components: 0
+    - name: Restart backend systemd service
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{secrets.REMOTE_HOST}}
+        user: ${{secrets.REMOTE_USER}}
+        key: ${{secrets.SSH_KEY}}
+        port: 22
+        scripts: "systemctl restart aily" 
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22.22.1'
+          cache: 'npm'
+      - name: Install deps
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Copy frontend files to the server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{secrets.REMOTE_HOST}}
+          user: ${{secrets.REMOTE_USER}}
+          key: ${{secrets.SSH_KEY}}
+          port: 22
+          source: ./dest
+          target: ${{secrets.REMOTE_FRONTEND_PATH}}
+          strip_components: 0
+      - name: Restart frontend systemd service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{secrets.REMOTE_HOST}}
+          user: ${{secrets.REMOTE_USER}}
+          key: ${{secrets.SSH_KEY}}
+          port: 22
+          scripts: "systemctl restart nginx" 
+  
