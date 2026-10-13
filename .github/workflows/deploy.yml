@@ -24,7 +24,7 @@ jobs:
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{secrets.REMOTE_HOST}}
-        user: ${{secrets.REMOTE_USER}}
+        username: ${{secrets.REMOTE_USER}}
         key: ${{secrets.SSH_KEY}}
         port: 22
         source: ./target/release/aily-backend
@@ -34,7 +34,7 @@ jobs:
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{secrets.REMOTE_HOST}}
-        user: ${{secrets.REMOTE_USER}}
+        username: ${{secrets.REMOTE_USER}}
         key: ${{secrets.SSH_KEY}}
         port: 22
         scripts: "systemctl restart aily" 
@@ -60,17 +60,17 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{secrets.REMOTE_HOST}}
-          user: ${{secrets.REMOTE_USER}}
+          username: ${{secrets.REMOTE_USER}}
           key: ${{secrets.SSH_KEY}}
           port: 22
-          source: ./frontend/dest/*
+          source: frontend/dest/*
           target: ${{secrets.REMOTE_FRONTEND_PATH}}
           strip_components: 0
       - name: Restart frontend systemd service
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{secrets.REMOTE_HOST}}
-          user: ${{secrets.REMOTE_USER}}
+          username: ${{secrets.REMOTE_USER}}
           key: ${{secrets.SSH_KEY}}
           port: 22
           scripts: "systemctl restart nginx" 
