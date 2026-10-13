@@ -20,6 +20,5 @@ target/
 .env
 *.sqlite
 *.db
-*.sql
 dist/
 .diesel_lock

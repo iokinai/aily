@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    env,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -10,12 +9,16 @@ use axum::{
     routing::{get, post},
 };
 use axum_extra::extract::cookie::Cookie;
+use diesel::{Connection, SqliteConnection};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
+use log::{error, info};
 use reqwest::header;
 use tokio::{self, net::TcpListener, sync::RwLock};
 use tower_http::cors::CorsLayer;
 
 use crate::{
     database::SqliteDatabase,
+    environment::Environment,
     http::{
         AppState,
         handlers::{get_current_session, make_guess, proxy_image_handler, start_new_session},
@@ -24,6 +27,7 @@ use crate::{
 };
 
 mod database;
+mod environment;
 mod errors;
 mod game;
 mod http;
@@ -50,24 +54,47 @@ pub fn make_new_session_cookie<'a>(id: String) -> Cookie<'a> {
         .build()
 }
 
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations");
+
+fn run_migrations(conn: &mut SqliteConnection) {
+    conn.run_pending_migrations(MIGRATIONS)
+        .inspect_err(|e| error!("Could not run migrations: {}", e))
+        .unwrap();
+}
+
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv().unwrap();
+    let env = Environment::parse().unwrap();
     tracing_subscriber::fmt().with_target(false).init();
 
-    let database = SqliteDatabase::new(env::var("AILY_DATABASE").unwrap()).unwrap();
+    info!("Running database migrations");
+
+    run_migrations(&mut SqliteConnection::establish(env.database_connection()).unwrap());
+
+    info!("Migrations ran successfully");
+
+    let database = SqliteDatabase::new(env.database_connection().clone()).unwrap();
+
+    info!("Database connection estabilished");
+
+    let client = reqwest::Client::builder()
+        .user_agent(format!("Aily /1.0 (user #{})", env.danbooru_id()))
+        .build()
+        .unwrap();
+
     let state = AppState {
         database: Arc::new(database),
         sessions: Arc::new(RwLock::new(HashMap::new())),
-        danbooru_id: env::var("AILY_DANBOORU_ID").unwrap().parse().unwrap(),
+        http_request_client: Arc::new(client),
     };
 
     spawn_session_gc_task(state.clone());
 
+    info!("Sessions garbage collector started");
+
     let cors = CorsLayer::new()
         .allow_origin(
-            env::var("AILY_FRONTEND_URL")
-                .unwrap()
+            env.frontend_url()
                 .parse::<axum::http::HeaderValue>()
                 .unwrap(),
         )
@@ -89,8 +116,11 @@ async fn main() {
         .with_state(state)
         .layer(cors);
 
-    let listener = TcpListener::bind(env::var("AILY_BACKEND_URL").unwrap())
-        .await
-        .unwrap();
+    let backend_url = env.backend_url();
+
+    let listener = TcpListener::bind(backend_url.clone()).await.unwrap();
+
+    info!("TCP listener bound to {}", backend_url);
+
     axum::serve(listener, app).await.unwrap();
 }

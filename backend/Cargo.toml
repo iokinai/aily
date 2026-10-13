@@ -16,10 +16,11 @@ trl = "1.2.2"
 uuid = { version = "1.28.0", features = ["v4"] }
 dotenv = "0.15.0"
 tower-http = { version = "0.7.1", features = ["cors"] }
-reqwest = "0.13.5"
+reqwest = { version = "0.13.5", features = ["stream"] }
 log = "0.4.34"
 tracing-subscriber = "0.3.23"
 axum-extra = { version = "0.12.6", features = ["cookie"] }
 time = "0.3.55"
 thiserror = "2.0.21"
 serde_repr = "0.1.21"
+diesel_migrations = { version = "2.3.2", features = ["sqlite"] }
