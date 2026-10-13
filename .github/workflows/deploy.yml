@@ -63,7 +63,7 @@ jobs:
           username: ${{secrets.REMOTE_USER}}
           key: ${{secrets.SSH_KEY}}
           port: 22
-          source: frontend/dest/*
+          source: frontend/dist/*
           target: ${{secrets.REMOTE_FRONTEND_PATH}}
           strip_components: 0
       - name: Restart frontend systemd service
