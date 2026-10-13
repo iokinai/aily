@@ -56,11 +56,6 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
-      - name: debug check current directory and files
-        run: |
-          pwd
-          ls -la
-          ls -la dist
       - name: Copy frontend files to the server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -68,7 +63,7 @@ jobs:
           user: ${{secrets.REMOTE_USER}}
           key: ${{secrets.SSH_KEY}}
           port: 22
-          source: frontend/dest
+          source: ./frontend/dest/*
           target: ${{secrets.REMOTE_FRONTEND_PATH}}
           strip_components: 0
       - name: Restart frontend systemd service
