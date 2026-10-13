@@ -51,7 +51,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: ./frontend/package-lock.json
       - name: Install deps
         run: npm ci
       - name: Build
@@ -63,7 +63,7 @@ jobs:
           user: ${{secrets.REMOTE_USER}}
           key: ${{secrets.SSH_KEY}}
           port: 22
-          source: ./dest
+          source: ./frontend/dest
           target: ${{secrets.REMOTE_FRONTEND_PATH}}
           strip_components: 0
       - name: Restart frontend systemd service
