@@ -29,7 +29,7 @@ jobs:
         port: 22
         source: ./target/release/aily-backend
         target: ${{secrets.REMOTE_BACKEND_PATH}}
-        strip_components: 0
+        strip_components: 2
     - name: Restart backend systemd service
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -65,7 +65,7 @@ jobs:
           port: 22
           source: frontend/dist/*
           target: ${{secrets.REMOTE_FRONTEND_PATH}}
-          strip_components: 0
+          strip_components: 2
       - name: Restart frontend systemd service
         uses: appleboy/ssh-action@v1.0.3
         with:
