@@ -1,15 +1,10 @@
 mod app_state;
-mod guess_query;
 pub mod handlers;
-mod http_danbooru_post;
-mod http_session;
 mod logged_session;
-mod proxy_query;
-mod random_post_request;
+mod models;
+mod queries;
 
 pub use app_state::AppState;
-pub use guess_query::GuessQuery;
-pub use http_danbooru_post::HttpDanbooruPost;
-pub use http_session::HttpSession;
 pub use logged_session::LoggedSession;
-pub use random_post_request::RandomPostRequest;
+pub use models::*;
+pub use queries::*;

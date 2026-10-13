@@ -2,9 +2,7 @@ use axum::{extract::FromRequestParts, http::request::Parts};
 use axum_extra::extract::CookieJar;
 use reqwest::StatusCode;
 
-use crate::{
-    get_new_session_exptime, get_new_session_lifetime, http::AppState, make_new_session_cookie,
-};
+use crate::{get_new_session_exptime, http::AppState, make_new_session_cookie};
 
 pub struct LoggedSession(pub CookieJar, pub String);
 

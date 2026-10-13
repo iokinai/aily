@@ -3,11 +3,11 @@ use trl::Trl;
 #[derive(Trl, Clone)]
 #[getters]
 #[constructor]
-pub struct GameDanbooruPost {
+pub struct AilyPost {
     id: i32,
-    danbooru_id: Option<i32>,
-    is_nsfw: bool,
+    artwork_id: i32,
+    danbooru_id: i32,
     is_ai_generated: bool,
-    is_ai_assisted: bool,
+    is_nsfw: bool,
     path: String,
 }

@@ -1,11 +1,22 @@
+// @generated automatically by Diesel CLI.
+
 diesel::table! {
-    #[allow(non_snake_case)]
-    Arts(id) {
+    aily_posts (id) {
         id -> Integer,
-        danbooru_id -> Nullable<Integer>,
-        is_nsfw -> Bool,
+        artwork_id -> Integer,
         is_ai_generated -> Bool,
-        is_ai_assisted -> Bool,
-        path -> VarChar
     }
 }
+
+diesel::table! {
+    artworks (id) {
+        id -> Integer,
+        danbooru_id -> Integer,
+        path -> Text,
+        is_nsfw -> Bool,
+    }
+}
+
+diesel::joinable!(aily_posts -> artworks (artwork_id));
+
+diesel::allow_tables_to_appear_in_same_query!(aily_posts, artworks,);

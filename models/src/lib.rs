@@ -1,8 +1,10 @@
-mod game_danbooru_post;
-mod game_session;
+mod aily_post;
+mod artwork;
 mod load_danbooru_post;
+mod session;
 
-pub use game_danbooru_post::GameDanbooruPost;
-pub use game_session::GameSession;
+pub use aily_post::AilyPost;
+pub use artwork::Artwork;
 pub use load_danbooru_post::LoadDanbooruPost;
 pub use serde;
+pub use session::Session;

@@ -10,15 +10,6 @@ mod load_error;
 mod loader;
 mod options;
 
-static TABLE: &str = r#"CREATE TABLE Arts(
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    danbooru_id INTEGER,
-    is_nsfw BOOLEAN NOT NULL,
-    is_ai_generated BOOLEAN NOT NULL,
-    is_ai_assisted BOOLEAN NOT NULL,
-    path TEXT NOT NULL
-);"#;
-
 fn is_nsfw(post: &LoadDanbooruPost) -> bool {
     post.rating() != "g"
 }
@@ -27,24 +18,29 @@ fn is_ai_generated(post: &LoadDanbooruPost) -> bool {
     post.tag_string().contains("ai-generated")
 }
 
-fn is_ai_assisted(post: &LoadDanbooruPost) -> bool {
-    post.tag_string().contains("ai-assisted")
-}
-
 fn serialize_posts_into_sql(posts: &Vec<LoadDanbooruPost>) -> Vec<String> {
+    let mut id_counter = 1;
     posts.iter().filter_map(|post| {
         if let None = post.file_url() {
             return None;
         }
 
-        Some(format!(
-            "INSERT INTO Arts (danbooru_id, is_nsfw, is_ai_generated, is_ai_assisted, path) VALUES ({}, {}, {}, {}, '{}');",
-            post.id(),
-            is_nsfw(post),
-            is_ai_generated(post),
-            is_ai_assisted(post),
-            post.file_url().clone().unwrap(),
-        ))
+        Some(
+            {
+                let res = format!(
+                    "INSERT INTO artworks (id, danbooru_id, path, is_nsfw) VALUES ({}, {}, '{}', {});\nINSERT INTO aily_posts(artwork_id, is_ai_generated) VALUES ({}, {});",
+                    id_counter,
+                    post.id(),
+                    post.file_url().clone().unwrap(),
+                    is_nsfw(post),
+                    id_counter,
+                    is_ai_generated(post),
+                );
+                id_counter += 1;
+                res
+            }
+        )
+
     }).collect()
 }
 
@@ -104,12 +100,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut file = File::options()
         .create(true)
-        .write(true)
+        .write(false)
+        .append(true)
         .open(options.output)
         .await?;
 
-    file.write(TABLE.as_bytes()).await?;
-    file.write("\n".as_bytes()).await?;
     file.write(sql_string.as_bytes()).await?;
 
     Ok(())

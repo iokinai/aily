@@ -1,8 +1,8 @@
 use std::{collections::HashMap, error::Error};
 
-use aily_models::{GameDanbooruPost, GameSession};
+use aily_models::{AilyPost, Session};
 use async_trait::async_trait;
-use diesel::{ExpressionMethods, QueryDsl, SqliteConnection};
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper, SqliteConnection};
 use diesel_async::{
     RunQueryDsl,
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool},
@@ -11,10 +11,10 @@ use diesel_async::{
 use log::error;
 
 use crate::{
-    database::{Database, db_danbooru_post::DbDanbooruPost},
-    errors::AilyError,
-    game::Session,
-    schema::Arts,
+    database::{Database, db_aily_post::DbAilyPost, db_artwork::DbArtwork},
+    errors::{AilyError, NotFound},
+    game::GameSession,
+    schema::{aily_posts, artworks},
 };
 
 pub struct SqliteDatabase {
@@ -34,44 +34,68 @@ impl SqliteDatabase {
 
 #[async_trait]
 impl Database for SqliteDatabase {
-    async fn get_random_post(&self, include_nsfw: bool) -> Result<GameDanbooruPost, AilyError> {
+    async fn get_random_post(&self, include_nsfw: bool) -> Result<AilyPost, AilyError> {
         let mut conn = self.pool.get().await.map_err(|_| AilyError::Unknown)?;
 
-        let mut query = Arts::table.select(Arts::all_columns).into_boxed();
+        let mut query = aily_posts::table
+            .inner_join(artworks::table)
+            .select((DbAilyPost::as_select(), DbArtwork::as_select()))
+            .into_boxed();
 
         if !include_nsfw {
-            query = query.filter(Arts::is_nsfw.eq(false));
+            query = query.filter(artworks::is_nsfw.eq(false));
         }
 
         let posts = query
             .order(diesel::dsl::sql::<diesel::sql_types::Integer>("RANDOM()"))
             .limit(1)
-            .load::<DbDanbooruPost>(&mut conn)
+            .load::<(DbAilyPost, DbArtwork)>(&mut conn)
             .await
             .inspect_err(|e| error!("Error while getting random post: {}", e))
-            .map_err(|e| AilyError::Unknown)?;
+            .map_err(|_| AilyError::Unknown)?;
 
-        let post = posts.into_iter().next().ok_or(AilyError::NotFound)?;
+        let (post, artwork) = posts
+            .into_iter()
+            .next()
+            .ok_or(AilyError::NotFound(NotFound::Artwork))?;
 
-        Ok(GameDanbooruPost::from(&post))
+        Ok(AilyPost::new(
+            post.id,
+            post.artwork_id,
+            artwork.danbooru_id,
+            post.is_ai_generated,
+            artwork.is_nsfw,
+            artwork.path,
+        ))
     }
 
-    async fn get_post_by_id(&self, id: i32) -> Result<GameDanbooruPost, AilyError> {
+    async fn get_post_by_id(&self, id: i32) -> Result<AilyPost, AilyError> {
         let mut conn = self.pool.get().await.map_err(|_| AilyError::Unknown)?;
 
-        let posts = Arts::table
-            .select(Arts::all_columns)
-            .filter(Arts::id.eq(id))
-            .load::<DbDanbooruPost>(&mut conn)
+        let posts = aily_posts::table
+            .inner_join(artworks::table)
+            .select((DbAilyPost::as_select(), DbArtwork::as_select()))
+            .filter(aily_posts::id.eq(id))
+            .load::<(DbAilyPost, DbArtwork)>(&mut conn)
             .await
             .map_err(|_| AilyError::Unknown)?;
 
-        let post = posts.into_iter().next().ok_or(AilyError::NotFound)?;
+        let (post, artwork) = posts
+            .into_iter()
+            .next()
+            .ok_or(AilyError::NotFound(NotFound::Artwork))?;
 
-        Ok(GameDanbooruPost::from(&post))
+        Ok(AilyPost::new(
+            post.id,
+            post.artwork_id,
+            artwork.danbooru_id,
+            post.is_ai_generated,
+            artwork.is_nsfw,
+            artwork.path,
+        ))
     }
 
-    async fn get_session(&self, sess: &Session) -> Result<GameSession, AilyError> {
+    async fn get_session(&self, sess: &GameSession) -> Result<Session, AilyError> {
         let mut ids = Vec::new();
         ids.reserve(sess.posts().len() + 1);
 
@@ -85,16 +109,29 @@ impl Database for SqliteDatabase {
             .inspect_err(|e| error!("Could not get connection from pool: {}", e))
             .map_err(|_| AilyError::Unknown)?;
 
-        let raw_posts = Arts::table
-            .select(Arts::all_columns)
-            .filter(Arts::id.eq_any(ids))
-            .load::<DbDanbooruPost>(&mut conn)
+        let raw_posts = aily_posts::table
+            .inner_join(artworks::table)
+            .select((DbAilyPost::as_select(), DbArtwork::as_select()))
+            .filter(aily_posts::id.eq_any(ids))
+            .load::<(DbAilyPost, DbArtwork)>(&mut conn)
             .await
             .map_err(|_| AilyError::Unknown)?;
 
-        let posts_map: HashMap<i32, GameDanbooruPost> = raw_posts
+        let posts_map: HashMap<i32, AilyPost> = raw_posts
             .into_iter()
-            .map(|post| (*post.id(), GameDanbooruPost::from(&post)))
+            .map(|(post, artwork)| {
+                (
+                    post.id,
+                    AilyPost::new(
+                        post.id,
+                        post.artwork_id,
+                        artwork.danbooru_id,
+                        post.is_ai_generated,
+                        artwork.is_nsfw,
+                        artwork.path,
+                    ),
+                )
+            })
             .collect();
 
         let current_id = *sess.current();
@@ -110,6 +147,6 @@ impl Database for SqliteDatabase {
             }
         }
 
-        Ok(GameSession::new(prev, current))
+        Ok(Session::new(prev, current))
     }
 }

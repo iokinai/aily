@@ -1,52 +1,50 @@
-use core::fmt;
-use std::error::Error;
-
 use axum::{
-    body::Body,
-    http::{Response, StatusCode},
-    response::IntoResponse,
+    Json,
+    response::{IntoResponse, Response},
 };
+use serde::Serialize;
+use thiserror::Error;
 
-#[derive(Debug)]
+use crate::errors::{ErrorType, NotFound, ProxyError, http_error_body::HttpErrorBody};
+
+#[derive(Error, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AilyError {
-    NotFound,
+    #[error("Not found: {0}")]
+    NotFound(#[from] NotFound),
+    #[error("This session is invalid")]
     InvalidSession,
-    ProxyError,
+    #[error("Error on proxy: {0}")]
+    ProxyError(#[from] ProxyError),
+    #[error("Unknown error occured")]
     Unknown,
 }
 
-impl Error for AilyError {}
-
-impl fmt::Display for AilyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AilyError::NotFound => write!(f, "Not found"),
-            AilyError::Unknown => write!(f, "Unknown"),
-            AilyError::InvalidSession => write!(f, "Invalid session"),
-            AilyError::ProxyError => write!(f, "Proxy error"),
-        }
-    }
-}
-
 impl IntoResponse for AilyError {
-    fn into_response(self) -> axum::response::Response {
-        match self {
-            AilyError::NotFound => Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(Body::from("Not found"))
-                .unwrap(),
-            AilyError::Unknown => Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(Body::from("Unknown"))
-                .unwrap(),
-            AilyError::InvalidSession => Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body(Body::from("Invalid session"))
-                .unwrap(),
-            AilyError::ProxyError => Response::builder()
-                .status(StatusCode::BAD_GATEWAY)
-                .body(Body::from("Proxy error"))
-                .unwrap(),
-        }
+    fn into_response(self) -> Response {
+        let (e_type, status, inner) = match self {
+            AilyError::NotFound(not_found) => (
+                ErrorType::NotFound,
+                axum::http::StatusCode::NOT_FOUND,
+                serde_json::to_value(&not_found).unwrap_or(serde_json::Value::Null),
+            ),
+            AilyError::InvalidSession => (
+                ErrorType::InvalidSession,
+                axum::http::StatusCode::BAD_REQUEST,
+                serde_json::Value::Null,
+            ),
+            AilyError::ProxyError(proxy_error) => (
+                ErrorType::ProxyError,
+                proxy_error.get_status_code(),
+                serde_json::to_value(&proxy_error).unwrap_or(serde_json::Value::Null),
+            ),
+            AilyError::Unknown => (
+                ErrorType::Unknown,
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                serde_json::Value::Null,
+            ),
+        };
+
+        (status, Json(HttpErrorBody::new(e_type, inner))).into_response()
     }
 }
