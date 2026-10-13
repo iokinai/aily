@@ -56,6 +56,12 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: debug check current directory and files
+        run: |
+          pwd
+          ls -la
+          ls -la frontend/
+          ls -la frontend/dist
       - name: Copy frontend files to the server
         uses: appleboy/scp-action@v0.1.7
         with:
