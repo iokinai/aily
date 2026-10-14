@@ -8,7 +8,7 @@ import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { errorToStringRu, HttpErrorBody } from "./api/apiError";
 
-const api = new Api(`${window.APP_PATH}/api`);
+const api = new Api(`${import.meta.env.VITE_API_URL}/api`);
 
 export default function App() {
   const [loading, setLoading] = useState(true);

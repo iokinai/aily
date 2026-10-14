@@ -17,7 +17,7 @@ export const ProxyImage = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const proxyUrl = `${window.APP_PATH}/api/proxy?url=${encodeURIComponent(src)}`;
+  const proxyUrl = `${import.meta.env.VITE_API_URL}/api/proxy?url=${encodeURIComponent(src)}`;
   const fallbackImage = "/assets/img/fallback.jpeg";
 
   return (
