@@ -4,7 +4,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use axum_extra::extract::cookie::Cookie;
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
@@ -22,7 +25,7 @@ use crate::{
         handlers::{
             artwork_to_post, artwork_to_tags_post, get_current_session, get_tags_list,
             load_artwork, load_tags_artwork, make_guess, proxy_image_handler, start_new_session,
-            tags_make_guess,
+            tags_make_guess, tags_surrender,
         },
     },
     session_garbage_collector::spawn_session_gc_task,
@@ -129,7 +132,8 @@ async fn main() {
     let tags_routes = Router::new()
         .route("/", get(load_tags_artwork).post(tags_make_guess))
         .route("/list", get(get_tags_list))
-        .route("/artwork_to_post", get(artwork_to_tags_post));
+        .route("/artwork_to_post", get(artwork_to_tags_post))
+        .route("/surrender", post(tags_surrender));
 
     let app = Router::new()
         .nest(

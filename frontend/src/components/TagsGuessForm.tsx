@@ -5,6 +5,7 @@ import { TagsGuessFormInput } from "./TagsGuessFormInput";
 import { TagsGuessFormButton } from "./TagsGuessFormButton";
 import { GuessedTagIsland } from "./GuessedTagIsland";
 import { RoundResultView } from "./RoundResultView";
+import { EndGameReason } from "@/models/ui/endGameReason";
 
 interface TagsGuessFormOptions {
   correctGuesses: number;
@@ -14,10 +15,11 @@ interface TagsGuessFormOptions {
   guessTag: () => void;
   tagInput: string;
   tagFinished: boolean;
-  tagWon: boolean | null;
+  endGameReason: EndGameReason | null;
   setTagInput: React.Dispatch<React.SetStateAction<string>>;
   startNewRound: () => void;
   tagArtwork: TagsPost | null;
+  surrender: () => void;
 }
 
 export function TagsGuessForm({
@@ -28,10 +30,11 @@ export function TagsGuessForm({
   guessTag,
   tagInput,
   tagFinished,
-  tagWon,
+  endGameReason,
   setTagInput,
   startNewRound,
   tagArtwork,
+  surrender,
 }: TagsGuessFormOptions) {
   return (
     <div className="rounded-3xl border border-ink/10 bg-zinc-900/80 p-5 sm:p-6">
@@ -46,7 +49,7 @@ export function TagsGuessForm({
           event.preventDefault();
           guessTag();
         }}
-        className="flex gap-2"
+        className="flex gap-2 flex-col"
       >
         <TagsGuessFormInput
           tagInput={tagInput}
@@ -54,14 +57,30 @@ export function TagsGuessForm({
           tagFinished={tagFinished}
         />
 
-        <TagsGuessFormButton tagInput={tagInput} tagFinished={tagFinished} />
+        <TagsGuessFormButton
+          type="submit"
+          disabled={!tagInput.trim() || tagFinished}
+          className="bg-cobalt text-white hover:bg-cobalt-dark focus-visible:outline-cobalt"
+        >
+          Отправить
+        </TagsGuessFormButton>
+        <TagsGuessFormButton
+          disabled={tagFinished}
+          className="bg-red-500 text-white hover:bg-red-600 focus-visible:outline-red-600"
+          onClick={(e) => {
+            e.preventDefault();
+            surrender();
+          }}
+        >
+          Сдаться
+        </TagsGuessFormButton>
       </form>
 
       {guesses.length > 0 && <GuessedTagIsland guesses={guesses} />}
 
       {tagFinished && (
         <RoundResultView
-          tagWon={tagWon}
+          endGameReason={endGameReason}
           correctGuesses={correctGuesses}
           guessesToWin={guessesToWin}
           tagArtwork={tagArtwork}

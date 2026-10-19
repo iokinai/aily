@@ -5,6 +5,7 @@ import DanbooruPost from "../models/danbooruPost";
 import { Artwork } from "../models/artwork";
 import { TagGuessResult } from "../models/tagGuessResult";
 import { TagsPost } from "../models/tagsPost";
+import { SurrenderResult } from "@/models/surrenderResult";
 
 export class Api {
   private baseUrl: string;
@@ -112,6 +113,21 @@ export class Api {
       `/tags/artwork_to_post?id=${artwork.id}`,
       {
         method: "GET",
+      },
+    );
+  }
+
+  async tagsSurrender(
+    include_nsfw: boolean,
+  ): Promise<[SurrenderResult, SessionData]> {
+    return await this.request<[SurrenderResult, SessionData]>(
+      "/tags/surrender",
+      {
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({
+          include_nsfw: include_nsfw,
+        }),
       },
     );
   }

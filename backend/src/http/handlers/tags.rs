@@ -9,7 +9,8 @@ use crate::{
     game::tags::SessionEnded,
     http::{
         AppState, ArtworkRequest, ArtworkToPostRequest, HttpArtwork, HttpSession, HttpSessionEnded,
-        HttpTag, HttpTagGuessResult, HttpTagsPost, LoggedSession, TagsGuessRequest,
+        HttpSurrenderResult, HttpTag, HttpTagGuessResult, HttpTagsPost, LoggedSession,
+        SurrenderRequest, TagsGuessRequest,
     },
 };
 
@@ -100,6 +101,31 @@ pub async fn artwork_to_tags_post(
     Ok(Json(HttpTagsPost::from(&result)))
 }
 
-pub async fn surrender(State(state): State<AppState>) {
-    //
+pub async fn tags_surrender(
+    State(state): State<AppState>,
+    logged_session: LoggedSession,
+    Json(request): Json<SurrenderRequest>,
+) -> Result<(CookieJar, Json<(HttpSurrenderResult, HttpSession)>), AilyError> {
+    let session_id = logged_session.1;
+
+    let surrender_result = state
+        .tags_game_controller
+        .surrender(&session_id, *request.include_nsfw())
+        .await?;
+
+    let sessions = state.sessions.read().await;
+    let session = sessions.get(&session_id).ok_or(AilyError::InvalidSession)?;
+
+    Ok((
+        logged_session.0,
+        Json((
+            HttpSurrenderResult::from(&surrender_result),
+            HttpSession::from(
+                &state
+                    .global_game_controller
+                    .game_session_to_global_session(session)
+                    .await?,
+            ),
+        )),
+    ))
 }

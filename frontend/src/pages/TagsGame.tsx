@@ -9,6 +9,7 @@ import { GuessObject } from "@/models/ui/guessObject";
 import { TagsGuessForm } from "@/components/TagsGuessForm";
 import { TagsArtworkTitle } from "@/components/TagsArtworkTitle";
 import { useState } from "react";
+import { EndGameReason } from "@/models/ui/endGameReason";
 
 const GUESSES_TO_WIN = 3;
 const MAX_GUESSES = 5;
@@ -48,7 +49,9 @@ export function TagsGame({ api, session, nsfw, setSession }: TagsGameProps) {
   const [guesses, setGuesses] = useState<GuessObject[]>(initGuesses);
   const [tagInput, setTagInput] = useState("");
   const [tagFinished, setTagFinished] = useState(false);
-  const [tagWon, setTagWon] = useState<boolean | null>(null);
+  const [endGameReason, setEndGameReason] = useState<EndGameReason | null>(
+    null,
+  );
   const [nextArtwork, setNextArtwork] = useState<Artwork | null>(null);
   const [tagArtwork, setTagArtwork] = useState<TagsPost | null>(null);
 
@@ -73,7 +76,7 @@ export function TagsGame({ api, session, nsfw, setSession }: TagsGameProps) {
       .artworkToTagsPost(artwork)
       .then((ta) => {
         setTagArtwork(ta);
-        setTagWon(won);
+        setEndGameReason(won ? "won" : "noGuessesLeft");
         setTagFinished(true);
       })
       .catch((e) => {
@@ -93,11 +96,26 @@ export function TagsGame({ api, session, nsfw, setSession }: TagsGameProps) {
     }
 
     setTagFinished(false);
-    setTagWon(null);
+    setEndGameReason(null);
     setArtwork(next);
     setCorrectGuesses(0);
     setGuesses([]);
     setNextArtwork(null);
+  };
+
+  const surrender = async () => {
+    try {
+      const [surrenderResult, session] = await api.tagsSurrender(nsfw);
+      setTagArtwork(surrenderResult.post);
+      setEndGameReason("surrender");
+      setTagFinished(true);
+      setSession(session);
+      setNextArtwork(surrenderResult.next);
+    } catch (e) {
+      toast.error(errorToStringRu(e as HttpErrorBody), {
+        id: "surrender-error",
+      });
+    }
   };
 
   const guessTag = async () => {
@@ -164,10 +182,11 @@ export function TagsGame({ api, session, nsfw, setSession }: TagsGameProps) {
           guessTag={guessTag}
           tagInput={tagInput}
           tagFinished={tagFinished}
-          tagWon={tagWon}
+          endGameReason={endGameReason}
           setTagInput={setTagInput}
           startNewRound={() => startNewRound(nextArtwork)}
           tagArtwork={tagArtwork}
+          surrender={surrender}
         />
       </div>
     </section>
