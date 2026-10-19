@@ -1,6 +1,6 @@
-import { HistoryItem } from "../components/HistoryItem";
-import { EmptyHistory } from "../components/EmptyHistory";
-import { SessionData } from "../api/sessionData";
+import { HistoryItem } from "@/components/HistoryItem";
+import { EmptyHistory } from "@/components/EmptyHistory";
+import { SessionData } from "@/models/sessionData";
 
 export function History({ session }: { session: SessionData | null }) {
   if (!session) {

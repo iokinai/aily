@@ -1,7 +1,10 @@
-import { SessionData } from "./sessionData";
+import { SessionData } from "../models/sessionData";
 import { ErrorType, HttpErrorBody } from "./apiError";
 import { GuessRequest } from "./guessRequest";
-import DanbooruPost from "./danbooruPost";
+import DanbooruPost from "../models/danbooruPost";
+import { Artwork } from "../models/artwork";
+import { TagGuessResult } from "../models/tagGuessResult";
+import { TagsPost } from "../models/tagsPost";
 
 export class Api {
   private baseUrl: string;
@@ -49,15 +52,67 @@ export class Api {
 
   async makeGuess(
     req: GuessRequest,
-  ): Promise<{ guessed: boolean; post: DanbooruPost }> {
-    const result = await this.request<[boolean, DanbooruPost]>("/aily", {
-      method: "POST",
-      body: JSON.stringify(req),
-    });
+  ): Promise<{ guessed: boolean; post: Artwork; session: SessionData }> {
+    const result = await this.request<[boolean, Artwork, SessionData]>(
+      "/aily",
+      {
+        method: "POST",
+        body: JSON.stringify(req),
+      },
+    );
 
     return {
       guessed: result[0],
       post: result[1],
+      session: result[2],
     };
+  }
+
+  async artworkToPost(artwork: Artwork): Promise<DanbooruPost> {
+    return await this.request<DanbooruPost>(
+      `/aily/artwork_to_post?id=${artwork.id}`,
+      {
+        method: "GET",
+      },
+    );
+  }
+
+  async loadAilyArtwork(include_nsfw: boolean): Promise<Artwork> {
+    return await this.request<Artwork>(`/aily?include_nsfw=${include_nsfw}`, {
+      method: "GET",
+      credentials: "include",
+    });
+  }
+
+  async loadTagsArtwork(include_nsfw: boolean): Promise<Artwork> {
+    return await this.request<Artwork>(`/tags?include_nsfw=${include_nsfw}`, {
+      method: "GET",
+      credentials: "include",
+    });
+  }
+
+  async makeTagsGuess(request: {
+    include_nsfw: boolean;
+    tag: string;
+  }): Promise<{ result: TagGuessResult; session: SessionData }> {
+    const result = await this.request<[TagGuessResult, SessionData]>("/tags", {
+      method: "POST",
+      credentials: "include",
+      body: JSON.stringify(request),
+    });
+
+    return {
+      result: result[0],
+      session: result[1],
+    };
+  }
+
+  async artworkToTagsPost(artwork: Artwork): Promise<TagsPost> {
+    return await this.request<TagsPost>(
+      `/tags/artwork_to_post?id=${artwork.id}`,
+      {
+        method: "GET",
+      },
+    );
   }
 }

@@ -1,5 +1,5 @@
-import { SessionData } from "../api/sessionData";
-import { PageLayout } from "../components/PageLayout";
+import { SessionData } from "@/models/sessionData";
+import { PageLayout } from "@/components/PageLayout";
 import { History } from "./History";
 
 interface HistoryProps {

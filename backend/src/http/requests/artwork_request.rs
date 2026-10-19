@@ -3,7 +3,6 @@ use trl::Trl;
 
 #[derive(Deserialize, Trl)]
 #[getters]
-pub struct GuessQuery {
+pub struct ArtworkRequest {
     include_nsfw: bool,
-    is_ai_generated: bool,
 }

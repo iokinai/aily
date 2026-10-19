@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { HistoryObject } from "../api/historyObject";
+import { HistoryObject } from "@/models/ailyHistoryObject";
 import { ProxyImage } from "./ProxyImage";
 
 export function HistoryItem({ entry }: { entry: HistoryObject }) {

@@ -3,6 +3,6 @@ use trl::Trl;
 
 #[derive(Deserialize, Trl)]
 #[getters]
-pub struct ProxyQuery {
+pub struct ProxyRequest {
     url: String,
 }

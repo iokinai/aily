@@ -1,11 +1,12 @@
 import { useState } from "react";
-import DanbooruPost from "../api/danbooruPost";
 import { ProxyImage } from "./ProxyImage";
+import { Artwork } from "@/models/artwork";
 
 interface ArtworkCardProps {
-  post: DanbooruPost;
+  post: Artwork;
   answer: boolean | null;
   isCorrect: boolean | null;
+  isAiGenerated: boolean | null;
   onGuess: (ai: boolean) => void;
   onNext: () => void;
 }
@@ -14,6 +15,7 @@ export function ArtworkCard({
   post,
   answer,
   isCorrect,
+  isAiGenerated,
   onGuess,
   onNext,
 }: ArtworkCardProps) {
@@ -55,9 +57,7 @@ export function ArtworkCard({
                 {isCorrect ? "Вы угадали" : "Неверно"}
               </p>
               <p className="mt-1 font-display text-2xl font-semibold">
-                {post.is_ai_generated
-                  ? "Сгенерировано ИИ."
-                  : "Сделано человеком."}
+                {isAiGenerated ? "Сгенерировано ИИ." : "Сделано человеком."}
               </p>
               <a
                 href={`https://danbooru.donmai.us/posts/${post.danbooru_id}`}
