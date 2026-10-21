@@ -42,17 +42,6 @@ impl GameSession {
             .push(GameTagsSession::new(artwork_id, rounds, state));
     }
 
-    pub fn append_tags_round_to_last_session(&mut self, tag: String, correct: bool) {
-        if self.tag_posts.is_empty() {
-            return;
-        }
-
-        self.tag_posts
-            .last_mut()
-            .unwrap()
-            .append_round(tag, correct);
-    }
-
     pub fn start_new_tags_session(&mut self, artwork_id: i32) {
         self.tag_posts
             .push(GameTagsSession::new(artwork_id, vec![], TagsState::Going));
