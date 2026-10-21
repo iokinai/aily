@@ -1,16 +1,28 @@
 mod aily_post;
+mod aily_session;
 mod artwork;
 mod load_danbooru_post;
 mod session;
 mod surrender_result;
 mod tag;
+mod tags_finish;
+mod tags_lose_reason;
 mod tags_post;
+mod tags_round;
+mod tags_session;
+mod tags_state;
 
 pub use aily_post::AilyPost;
+pub use aily_session::AilySession;
 pub use artwork::Artwork;
 pub use load_danbooru_post::LoadDanbooruPost;
 pub use serde;
 pub use session::Session;
 pub use surrender_result::SurrenderResult;
 pub use tag::Tag;
+pub use tags_finish::TagsFinish;
+pub use tags_lose_reason::TagsLoseReason;
 pub use tags_post::TagsPost;
+pub use tags_round::TagsRound;
+pub use tags_session::TagsSession;
+pub use tags_state::TagsState;

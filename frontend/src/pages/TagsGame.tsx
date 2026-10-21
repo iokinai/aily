@@ -31,13 +31,13 @@ export function TagsGame({ api, session, nsfw, setSession }: TagsGameProps) {
     if (!lastRound !== null) {
       initCorrectGuesses = session.tags_prev[
         session.tags_prev.length - 1
-      ][1].filter((g) => g[1]).length;
+      ].rounds.filter((g) => g.guessed_correctly).length;
 
-      initGuesses = session.tags_prev[session.tags_prev.length - 1][1].map(
+      initGuesses = session.tags_prev[session.tags_prev.length - 1].rounds.map(
         (v) => {
           return {
-            tag: v[0],
-            correct: v[1],
+            tag: v.tag,
+            correct: v.guessed_correctly,
           };
         },
       );
@@ -129,7 +129,7 @@ export function TagsGame({ api, session, nsfw, setSession }: TagsGameProps) {
     try {
       const result = await api.makeTagsGuess({
         include_nsfw: nsfw,
-        tag: tagInput,
+        tag: tag,
       });
 
       setSession(result.session);

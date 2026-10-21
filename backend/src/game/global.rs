@@ -1,9 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 
-use aily_models::{AilyPost, Artwork, Session};
+use aily_models::{AilyPost, AilySession, Artwork, Session, TagsRound, TagsSession};
 use tokio::sync::RwLock;
 
-use crate::{database::Database, errors::AilyError, game::GameSession, get_new_session_exptime};
+use crate::{
+    database::Database,
+    errors::AilyError,
+    game::{GameAilySession, GameSession, GameTagsSession},
+    get_new_session_exptime,
+};
 
 #[derive(Clone)]
 pub struct GlobalGameController {
@@ -20,7 +25,7 @@ impl GlobalGameController {
     }
 
     pub async fn make_and_save_new_session(&self, id: &String) {
-        let session = GameSession::new(vec![], vec![], None, None, get_new_session_exptime());
+        let session = GameSession::new(vec![], vec![], get_new_session_exptime(), None, None);
 
         self.sessions.write().await.insert(id.clone(), session);
     }
@@ -36,10 +41,10 @@ impl GlobalGameController {
     async fn fetch_aily_history(
         &self,
         db: &Arc<dyn Database + Send + Sync>,
-        aily_posts: &[(i32, bool)],
+        aily_posts: &[GameAilySession],
         current_id: Option<i32>,
-    ) -> Result<(Vec<(AilyPost, bool)>, Option<Artwork>), AilyError> {
-        let mut ids: Vec<i32> = aily_posts.iter().map(|(id, _)| *id).collect();
+    ) -> Result<(Vec<AilySession>, Option<Artwork>), AilyError> {
+        let mut ids: Vec<i32> = aily_posts.iter().map(|p| *p.artwork_id()).collect();
         if let Some(c) = current_id {
             ids.push(c);
         }
@@ -53,9 +58,9 @@ impl GlobalGameController {
             posts.into_iter().map(|post| (*post.id(), post)).collect();
 
         let mut prev = Vec::with_capacity(aily_posts.len());
-        for (id, flag) in aily_posts {
-            if let Some(post) = posts_map.get(id) {
-                prev.push((post.clone(), *flag));
+        for entry in aily_posts {
+            if let Some(post) = posts_map.get(&entry.artwork_id()) {
+                prev.push(AilySession::new(post.clone(), *entry.guessed_correctly()));
             }
         }
 
@@ -72,16 +77,10 @@ impl GlobalGameController {
     async fn fetch_tags_history(
         &self,
         db: &Arc<dyn Database + Send + Sync>,
-        tag_posts: &[(i32, Vec<(String, bool)>, Option<bool>)],
+        tag_posts: &[GameTagsSession],
         current_id: Option<i32>,
-    ) -> Result<
-        (
-            Vec<(Artwork, Vec<(String, bool)>, Option<bool>)>,
-            Option<Artwork>,
-        ),
-        AilyError,
-    > {
-        let mut ids: Vec<i32> = tag_posts.iter().map(|(id, _, _)| *id).collect();
+    ) -> Result<(Vec<TagsSession>, Option<Artwork>), AilyError> {
+        let mut ids: Vec<i32> = tag_posts.iter().map(|p| *p.artwork_id()).collect();
         if let Some(c) = current_id {
             ids.push(c);
         }
@@ -95,9 +94,19 @@ impl GlobalGameController {
             artworks.into_iter().map(|art| (*art.id(), art)).collect();
 
         let mut tags_prev = Vec::with_capacity(tag_posts.len());
-        for (id, tags, ended) in tag_posts {
-            if let Some(artwork) = artworks_map.get(id) {
-                tags_prev.push((artwork.clone(), tags.clone(), (*ended).clone()));
+        for entry in tag_posts {
+            if let Some(artwork) = artworks_map.get(&entry.artwork_id()) {
+                let rounds: Vec<TagsRound> = entry
+                    .rounds()
+                    .iter()
+                    .map(|r| TagsRound::new(r.tag().clone(), *r.guessed_correctly()))
+                    .collect();
+
+                tags_prev.push(TagsSession::new(
+                    artwork.clone(),
+                    rounds,
+                    entry.state().clone(),
+                ));
             }
         }
 

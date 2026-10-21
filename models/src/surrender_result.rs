@@ -2,6 +2,7 @@ use trl::Trl;
 
 use crate::{Artwork, TagsPost};
 
+// TODO: Unused
 #[derive(Trl)]
 #[getters]
 #[constructor]

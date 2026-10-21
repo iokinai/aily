@@ -1,10 +1,12 @@
 use aily_models::SurrenderResult;
 use serde::Serialize;
+use trl::Trl;
 
 use crate::http::{HttpArtwork, HttpTagsPost};
 
-#[derive(Serialize)]
+#[derive(Serialize, Trl)]
 #[serde(rename_all = "snake_case")]
+#[constructor]
 pub struct HttpSurrenderResult {
     post: HttpTagsPost,
     next: HttpArtwork,

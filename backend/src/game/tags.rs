@@ -1,22 +1,27 @@
 use std::{collections::HashMap, sync::Arc};
 
-use aily_models::{Artwork, SurrenderResult, Tag, TagsPost};
+use aily_models::{Artwork, Tag, TagsFinish, TagsLoseReason, TagsPost, TagsState};
 use tokio::sync::RwLock;
 
 use crate::{
     database::Database,
     errors::{AilyError, NotFound, TagAlreadyUsed},
-    game::GameSession,
+    game::{GameSession, GameTagsSession},
 };
 
 pub enum ShouldSessionEnd {
     No,
-    Yes(bool),
+    Yes(TagsFinish),
 }
 
 pub enum SessionEnded {
     No,
     Yes(bool, Artwork),
+}
+
+pub enum GuessType {
+    Guess { tag: String, correct: bool },
+    Surrender,
 }
 
 #[derive(Clone)]
@@ -51,8 +56,8 @@ impl TagsGameController {
         let session = sessions.get(session_id).ok_or(AilyError::InvalidSession)?;
 
         if let Some(round) = session.tag_posts().last() {
-            for (guessed_tag, _) in round.1.iter() {
-                if *tag == *guessed_tag {
+            for round in round.rounds().iter() {
+                if *tag == *round.tag() {
                     return Err(AilyError::TagAlreadyUsed(TagAlreadyUsed::new(tag)));
                 }
             }
@@ -71,26 +76,29 @@ impl TagsGameController {
 
     pub fn should_session_end_with_result(
         &self,
-        current_guess_session: &mut (i32, Vec<(String, bool)>, Option<bool>),
+        current_guess_session: &GameTagsSession,
     ) -> ShouldSessionEnd {
-        let correct_guesses = current_guess_session.1.iter().filter(|v| v.1).count();
+        let correct_guesses = current_guess_session
+            .rounds()
+            .iter()
+            .filter(|v| *v.guessed_correctly())
+            .count();
 
         if correct_guesses >= self.correct_guesses_until_win as usize {
-            return ShouldSessionEnd::Yes(true);
+            return ShouldSessionEnd::Yes(TagsFinish::Win);
         }
 
-        if current_guess_session.1.len() < self.max_session_length as usize {
+        if current_guess_session.rounds().len() < self.max_session_length as usize {
             return ShouldSessionEnd::No;
         }
 
-        ShouldSessionEnd::Yes(correct_guesses >= self.correct_guesses_until_win as usize)
+        ShouldSessionEnd::Yes(TagsFinish::Lose(TagsLoseReason::NotGuessed))
     }
 
     pub async fn update_session_after_guess(
         &self,
         session_id: &String,
-        tag: &String,
-        guessed: bool,
+        guess_type: GuessType,
         include_nsfw: bool,
     ) -> Result<SessionEnded, AilyError> {
         let next_artwork = self.database.get_aily_tags_artwork(include_nsfw).await?;
@@ -106,24 +114,34 @@ impl TagsGameController {
         };
         let current_id = *current;
 
-        if session.tag_posts().is_empty() || session.tag_posts_mut().last().unwrap().0 != current_id
+        if session.tag_posts().is_empty()
+            || session.tag_posts().last().unwrap().state().is_finished()
         {
-            session.tag_posts_mut().push((current_id, vec![], None));
+            session.append_tags_session(current_id, vec![], TagsState::Going);
         }
 
-        let current_guess_session = session.tag_posts_mut().last_mut().unwrap();
+        let current_session = session.tag_posts_mut().last_mut().unwrap();
 
-        current_guess_session.1.push((tag.clone(), guessed));
+        match guess_type {
+            GuessType::Guess { tag, correct } => {
+                current_session.append_round(tag, correct);
+            }
+            GuessType::Surrender => {
+                current_session.end_session(TagsFinish::Lose(TagsLoseReason::Surrender));
+                session.start_new_tags_session(*next_artwork.id());
+                return Ok(SessionEnded::Yes(false, next_artwork));
+            }
+        }
 
-        let should_end = self.should_session_end_with_result(current_guess_session);
+        let should_end = self.should_session_end_with_result(current_session);
 
         if let ShouldSessionEnd::Yes(e) = should_end {
-            current_guess_session.2 = Some(e);
-            session
-                .tag_posts_mut()
-                .push((*next_artwork.id(), vec![], None));
-            session.set_tags_current(Some(*next_artwork.id()));
-            return Ok(SessionEnded::Yes(e, next_artwork));
+            current_session.end_session(e.clone());
+            session.start_new_tags_session(*next_artwork.id());
+
+            let is_win = if let TagsFinish::Win = e { true } else { false };
+
+            return Ok(SessionEnded::Yes(is_win, next_artwork));
         }
 
         Ok(SessionEnded::No)
@@ -137,13 +155,7 @@ impl TagsGameController {
         self.database.get_tags_post_by_artwork_id(id).await
     }
 
-    pub async fn surrender(
-        &self,
-        session_id: &String,
-        include_nsfw: bool,
-    ) -> Result<SurrenderResult, AilyError> {
-        let next = self.load_tags_artwork(include_nsfw).await?;
-
+    pub async fn surrender(&self, session_id: &String) -> Result<TagsPost, AilyError> {
         let mut sessions = self.sessions.write().await;
         let session = sessions
             .get_mut(session_id)
@@ -157,17 +169,6 @@ impl TagsGameController {
 
         let current_post = self.get_tags_post_by_artwork_id(current_id).await?;
 
-        if session.tag_posts().is_empty() || session.tag_posts_mut().last().unwrap().0 != current_id
-        {
-            session.tag_posts_mut().push((current_id, vec![], None));
-        }
-
-        let current_guess_session = session.tag_posts_mut().last_mut().unwrap();
-
-        current_guess_session.2 = Some(false);
-
-        session.tag_posts_mut().push((*next.id(), vec![], None));
-
-        Ok(SurrenderResult::new(current_post, next))
+        Ok(current_post)
     }
 }

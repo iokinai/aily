@@ -8,6 +8,8 @@ import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { errorToStringRu, HttpErrorBody } from "./api/apiError";
 import { TagsGamePage } from "./pages/TagsGamePage";
+import { TagsHistory } from "./components/TagsHistory";
+import { TagsHistoryPage } from "./pages/TagsHistoryPage";
 
 const api = new Api(`${import.meta.env.VITE_API_URL}/api`);
 
@@ -80,6 +82,17 @@ export default function App() {
             path="/history"
             element={
               <HistoryPage nsfw={nsfw} setNsfw={setNsfw} session={session} />
+            }
+          />
+          <Route
+            path="/history/tags"
+            element={
+              <TagsHistoryPage
+                nsfw={nsfw}
+                setNsfw={setNsfw}
+                session={session}
+                guessesToWin={3}
+              />
             }
           />
         </Routes>

@@ -6,7 +6,7 @@ use axum_extra::extract::CookieJar;
 
 use crate::{
     errors::AilyError,
-    game::tags::SessionEnded,
+    game::tags::{GuessType, SessionEnded},
     http::{
         AppState, ArtworkRequest, ArtworkToPostRequest, HttpArtwork, HttpSession, HttpSessionEnded,
         HttpSurrenderResult, HttpTag, HttpTagGuessResult, HttpTagsPost, LoggedSession,
@@ -50,7 +50,14 @@ pub async fn tags_make_guess(
 
     let ended = state
         .tags_game_controller
-        .update_session_after_guess(&session_id, req.tag(), correct, *req.include_nsfw())
+        .update_session_after_guess(
+            &session_id,
+            GuessType::Guess {
+                tag: req.tag().clone(),
+                correct,
+            },
+            *req.include_nsfw(),
+        )
         .await?;
 
     let http_session_ended = match ended {
@@ -108,24 +115,34 @@ pub async fn tags_surrender(
 ) -> Result<(CookieJar, Json<(HttpSurrenderResult, HttpSession)>), AilyError> {
     let session_id = logged_session.1;
 
-    let surrender_result = state
+    let current_post = state.tags_game_controller.surrender(&session_id).await?;
+
+    let res = state
         .tags_game_controller
-        .surrender(&session_id, *request.include_nsfw())
+        .update_session_after_guess(&session_id, GuessType::Surrender, *request.include_nsfw())
         .await?;
 
     let sessions = state.sessions.read().await;
     let session = sessions.get(&session_id).ok_or(AilyError::InvalidSession)?;
 
-    Ok((
-        logged_session.0,
-        Json((
-            HttpSurrenderResult::from(&surrender_result),
-            HttpSession::from(
-                &state
-                    .global_game_controller
-                    .game_session_to_global_session(session)
-                    .await?,
-            ),
-        )),
-    ))
+    if let SessionEnded::Yes(_, artwork) = res {
+        return Ok((
+            logged_session.0,
+            Json((
+                HttpSurrenderResult::new(
+                    HttpTagsPost::from(&current_post),
+                    HttpArtwork::from(&artwork),
+                ),
+                HttpSession::from(
+                    &state
+                        .global_game_controller
+                        .game_session_to_global_session(session)
+                        .await?,
+                ),
+            )),
+        ));
+    }
+
+    // If somehow surrender will not end session
+    Err(AilyError::Unknown)
 }

@@ -1,10 +1,10 @@
-import { HistoryObject as AilyHistoryObject } from "./ailyHistoryObject";
-import { TagsHistoryObject } from "./tagsHistoryObject";
+import { AilySession } from "./ailySession";
+import { TagsSession } from "./tagsSession";
 import { Artwork } from "./artwork";
 
 export interface SessionData {
-  prev: AilyHistoryObject[];
-  tags_prev: TagsHistoryObject[];
+  prev: AilySession[];
+  tags_prev: TagsSession[];
   current: Artwork | null;
   tags_current: Artwork | null;
 }

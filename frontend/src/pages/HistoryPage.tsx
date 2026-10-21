@@ -1,6 +1,6 @@
 import { SessionData } from "@/models/sessionData";
 import { PageLayout } from "@/components/PageLayout";
-import { History } from "./History";
+import { AilyHistory } from "../components/AilyHistory";
 
 interface HistoryProps {
   nsfw: boolean;
@@ -11,7 +11,7 @@ interface HistoryProps {
 export function HistoryPage({ nsfw, setNsfw, session }: HistoryProps) {
   return (
     <PageLayout nsfw={nsfw} setNsfw={setNsfw}>
-      <History session={session} />
+      <AilyHistory session={session} />
     </PageLayout>
   );
 }

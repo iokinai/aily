@@ -1,13 +1,13 @@
-import { HistoryItem } from "@/components/HistoryItem";
+import { AilyHistoryItem } from "@/components/AilyHistoryItem";
 import { EmptyHistory } from "@/components/EmptyHistory";
 import { SessionData } from "@/models/sessionData";
 
-export function History({ session }: { session: SessionData | null }) {
+export function AilyHistory({ session }: { session: SessionData | null }) {
   if (!session) {
     return null;
   }
 
-  const score = session.prev.filter((p) => p[1]).length;
+  const score = session.prev.filter((p) => p.correct).length;
   const accuracy =
     session.prev.length > 0
       ? Math.round((score / session.prev.length) * 100)
@@ -38,7 +38,7 @@ export function History({ session }: { session: SessionData | null }) {
           <div className="absolute inset-0 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
             <div className="divide-y divide-zinc-800/60">
               {[...session.prev].reverse().map((entry) => (
-                <HistoryItem key={entry[0].danbooru_id} entry={entry} />
+                <AilyHistoryItem key={entry.post.danbooru_id} entry={entry} />
               ))}
             </div>
           </div>

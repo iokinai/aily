@@ -80,7 +80,7 @@ impl AilyGameController {
         let current = session.aily_current().cloned();
 
         if let Some(c) = current {
-            session.aily_posts_mut().push((c, guessed_correctly));
+            session.append_aily_session(c, guessed_correctly);
         }
 
         session.set_aily_current(Some(*new_post.id()));
