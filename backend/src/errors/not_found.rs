@@ -6,4 +6,6 @@ use thiserror::Error;
 pub enum NotFound {
     #[error("artwork")]
     Artwork,
+    #[error("tag")]
+    Tag,
 }

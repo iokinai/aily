@@ -1,26 +1,21 @@
-import { HistoryItem } from "../components/HistoryItem";
-import { EmptyHistory } from "../components/EmptyHistory";
-import { SessionData } from "../api/sessionData";
+import { AilyHistoryItem } from "@/components/AilyHistoryItem";
+import { EmptyHistory } from "@/components/EmptyHistory";
+import { SessionData } from "@/models/sessionData";
 
-export function History({ session }: { session: SessionData | null }) {
+export function AilyHistory({ session }: { session: SessionData | null }) {
   if (!session) {
     return null;
   }
 
-  const score = session.prev.filter((p) => p[1]).length;
+  const score = session.prev.filter((p) => p.correct).length;
   const accuracy =
     session.prev.length > 0
       ? Math.round((score / session.prev.length) * 100)
       : 0;
 
   return (
-    <section className="mx-auto w-full max-w-4xl flex flex-col flex-1 h-[calc(100vh-6rem)] py-8 px-4 sm:px-0">
-      <div className="flex items-end justify-between gap-6 border-b border-zinc-800 pb-6 shrink-0">
-        <div>
-          <h1 className="font-display text-4xl font-semibold tracking-tighter text-white sm:text-5xl">
-            История ответов
-          </h1>
-        </div>
+    <section className="mx-auto w-full max-w-4xl flex flex-col flex-1 h-[calc(100vh-25rem)] py-8 px-4 sm:px-0">
+      <div>
         {session.prev.length > 0 && (
           <div className="text-right">
             <p className="font-display text-3xl font-semibold tracking-tighter text-white">
@@ -32,13 +27,13 @@ export function History({ session }: { session: SessionData | null }) {
       </div>
 
       {session.prev.length === 0 ? (
-        <EmptyHistory />
+        <EmptyHistory mode="aily" />
       ) : (
         <div className="grow relative w-full mt-6">
           <div className="absolute inset-0 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
             <div className="divide-y divide-zinc-800/60">
               {[...session.prev].reverse().map((entry) => (
-                <HistoryItem key={entry[0].danbooru_id} entry={entry} />
+                <AilyHistoryItem key={entry.post.danbooru_id} entry={entry} />
               ))}
             </div>
           </div>
