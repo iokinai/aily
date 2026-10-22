@@ -1,11 +1,11 @@
 import { TagsPost } from "@/models/tagsPost";
 import { GuessObject } from "@/models/ui/guessObject";
 import { TagsGuessFormHeader } from "./TagsGuessFormHeader";
-import { TagsGuessFormInput } from "./TagsGuessFormInput";
 import { TagsGuessFormButton } from "./TagsGuessFormButton";
 import { GuessedTagIsland } from "./GuessedTagIsland";
 import { RoundResultView } from "./RoundResultView";
 import { EndGameReason } from "@/models/ui/endGameReason";
+import { TagInput } from "./TagInput";
 
 interface TagsGuessFormOptions {
   correctGuesses: number;
@@ -20,6 +20,7 @@ interface TagsGuessFormOptions {
   startNewRound: () => void;
   tagArtwork: TagsPost | null;
   surrender: () => void;
+  tags: string[];
 }
 
 export function TagsGuessForm({
@@ -35,6 +36,7 @@ export function TagsGuessForm({
   startNewRound,
   tagArtwork,
   surrender,
+  tags,
 }: TagsGuessFormOptions) {
   return (
     <div className="rounded-3xl border border-ink/10 bg-zinc-900/80 p-5 sm:p-6">
@@ -51,9 +53,17 @@ export function TagsGuessForm({
         }}
         className="flex gap-2 flex-col"
       >
-        <TagsGuessFormInput
+        {/*<TagsGuessFormInput
           tagInput={tagInput}
           setTagInput={setTagInput}
+          tagFinished={tagFinished}
+        />*/}
+
+        <TagInput
+          tags={tags}
+          onSelectTag={(tag) => {
+            setTagInput(tag);
+          }}
           tagFinished={tagFinished}
         />
 

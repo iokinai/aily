@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
 use aily_models::{AilyPost, Artwork, Tag, TagsPost};
 use async_trait::async_trait;
@@ -129,6 +129,36 @@ impl Database for SqliteDatabase {
                 )
             })
             .collect())
+    }
+
+    async fn get_tags_posts_by_artwork_ids(&self, ids: &[i32]) -> Result<Vec<TagsPost>, AilyError> {
+        let mut conn = self.pool.get().await.map_err(|_| AilyError::Unknown)?;
+
+        let rows = artwork_tag::table
+            .inner_join(artworks::table)
+            .inner_join(tags::table)
+            .select((DbArtwork::as_select(), DbTag::as_select()))
+            .filter(artworks::id.eq_any(ids))
+            .load::<(DbArtwork, DbTag)>(&mut conn)
+            .await
+            .map_err(|_| AilyError::Unknown)?;
+
+        let mut map: HashMap<i32, (Artwork, Vec<Tag>)> = HashMap::new();
+
+        for (db_art, db_tag) in rows {
+            let art_id = db_art.id;
+            let entry = map
+                .entry(art_id)
+                .or_insert_with(|| (Artwork::from(&db_art), Vec::new()));
+            entry.1.push(Tag::from(&db_tag));
+        }
+
+        let tags_posts = map
+            .into_iter()
+            .map(|(_, (artwork, tags))| TagsPost::from((artwork, tags)))
+            .collect();
+
+        Ok(tags_posts)
     }
 
     async fn get_post_by_artwork_id(&self, id: i32) -> Result<AilyPost, AilyError> {

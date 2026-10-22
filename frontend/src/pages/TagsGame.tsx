@@ -19,9 +19,16 @@ interface TagsGameProps {
   session: SessionData;
   nsfw: boolean;
   setSession: React.Dispatch<React.SetStateAction<SessionData | null>>;
+  tags: string[];
 }
 
-export function TagsGame({ api, session, nsfw, setSession }: TagsGameProps) {
+export function TagsGame({
+  api,
+  session,
+  nsfw,
+  setSession,
+  tags,
+}: TagsGameProps) {
   let initCorrectGuesses = 0;
   let initGuesses = [] as { tag: string; correct: boolean }[];
 
@@ -187,6 +194,7 @@ export function TagsGame({ api, session, nsfw, setSession }: TagsGameProps) {
           startNewRound={() => startNewRound(nextArtwork)}
           tagArtwork={tagArtwork}
           surrender={surrender}
+          tags={tags}
         />
       </div>
     </section>

@@ -9,6 +9,7 @@ interface GamePageProps {
   nsfw: boolean;
   setNsfw: (value: boolean) => void;
   setSession: React.Dispatch<React.SetStateAction<SessionData | null>>;
+  tags: string[];
 }
 
 export function TagsGamePage({
@@ -17,6 +18,7 @@ export function TagsGamePage({
   nsfw,
   setNsfw,
   setSession,
+  tags,
 }: GamePageProps) {
   return (
     <PageLayout nsfw={nsfw} setNsfw={setNsfw}>
@@ -25,6 +27,7 @@ export function TagsGamePage({
         nsfw={nsfw}
         session={session}
         setSession={setSession}
+        tags={tags}
       />
     </PageLayout>
   );

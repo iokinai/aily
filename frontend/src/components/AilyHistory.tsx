@@ -14,13 +14,8 @@ export function AilyHistory({ session }: { session: SessionData | null }) {
       : 0;
 
   return (
-    <section className="mx-auto w-full max-w-4xl flex flex-col flex-1 h-[calc(100vh-6rem)] py-8 px-4 sm:px-0">
-      <div className="flex items-end justify-between gap-6 border-b border-zinc-800 pb-6 shrink-0">
-        <div>
-          <h1 className="font-display text-4xl font-semibold tracking-tighter text-white sm:text-5xl">
-            История ответов
-          </h1>
-        </div>
+    <section className="mx-auto w-full max-w-4xl flex flex-col flex-1 h-[calc(100vh-25rem)] py-8 px-4 sm:px-0">
+      <div>
         {session.prev.length > 0 && (
           <div className="text-right">
             <p className="font-display text-3xl font-semibold tracking-tighter text-white">
@@ -32,7 +27,7 @@ export function AilyHistory({ session }: { session: SessionData | null }) {
       </div>
 
       {session.prev.length === 0 ? (
-        <EmptyHistory />
+        <EmptyHistory mode="aily" />
       ) : (
         <div className="grow relative w-full mt-6">
           <div className="absolute inset-0 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">

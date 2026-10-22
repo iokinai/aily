@@ -1,6 +1,21 @@
+import { GameMode } from "@/models/ui/gameMode";
 import { Link } from "react-router-dom";
 
-export function EmptyHistory() {
+interface EmptyHistoryOptions {
+  mode: GameMode;
+}
+
+export function EmptyHistory({ mode }: EmptyHistoryOptions) {
+  let startRedirect;
+
+  switch (mode) {
+    case "aily":
+      startRedirect = "/";
+      break;
+    case "tags":
+      startRedirect = "/tags";
+  }
+
   return (
     <div className="flex min-h-96 flex-col items-center justify-center text-center">
       <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-zinc-900 font-display text-2xl text-zinc-400">
@@ -13,7 +28,7 @@ export function EmptyHistory() {
         Сыграйте и ваш ответ появится тут.
       </p>
       <Link
-        to="/"
+        to={startRedirect}
         className="mt-6 rounded-full bg-blue-600 px-6 py-3 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:-translate-y-0.5 hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
       >
         Начать игру

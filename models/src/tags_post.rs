@@ -1,8 +1,10 @@
+use serde::Serialize;
 use trl::Trl;
 
 use crate::{Artwork, Tag};
 
-#[derive(Trl, Clone)]
+#[derive(Trl, Clone, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
 #[getters]
 #[constructor]
 pub struct TagsPost {

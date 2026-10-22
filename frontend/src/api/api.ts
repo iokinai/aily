@@ -6,6 +6,7 @@ import { Artwork } from "../models/artwork";
 import { TagGuessResult } from "../models/tagGuessResult";
 import { TagsPost } from "../models/tagsPost";
 import { SurrenderResult } from "@/models/surrenderResult";
+import { Tag } from "@/models/tag";
 
 export class Api {
   private baseUrl: string;
@@ -130,5 +131,11 @@ export class Api {
         }),
       },
     );
+  }
+
+  async getTagsList(): Promise<Tag[]> {
+    return await this.request<Tag[]>("/tags/list", {
+      method: "GET",
+    });
   }
 }

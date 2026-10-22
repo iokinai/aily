@@ -1,5 +1,7 @@
-use aily_models::{TagsFinish, TagsRound, TagsState};
+use aily_models::{TagsFinish, TagsRound};
 use trl::Trl;
+
+use crate::game::game_tags_state::GameTagsState;
 
 #[derive(Trl, Clone, Debug)]
 #[getters]
@@ -7,7 +9,7 @@ use trl::Trl;
 pub struct GameTagsSession {
     artwork_id: i32,
     rounds: Vec<TagsRound>,
-    state: TagsState,
+    state: GameTagsState,
 }
 
 impl GameTagsSession {
@@ -15,7 +17,10 @@ impl GameTagsSession {
         self.rounds.push(TagsRound::new(tag, correct));
     }
 
-    pub fn end_session(&mut self, reason: TagsFinish) {
-        self.state = TagsState::Finished(reason);
+    pub fn end_session(&mut self, artwork_id: i32, reason: TagsFinish) {
+        self.state = GameTagsState::Finished {
+            post: artwork_id,
+            finish: reason,
+        };
     }
 }

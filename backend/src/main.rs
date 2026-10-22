@@ -36,6 +36,8 @@ mod environment;
 mod errors;
 mod game;
 mod http;
+#[cfg(test)]
+mod mocks;
 mod schema;
 mod session_garbage_collector;
 

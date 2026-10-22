@@ -1,4 +1,5 @@
 import { GuessObject } from "@/models/ui/guessObject";
+import { Link } from "react-router-dom";
 
 interface TagsGuessFormHeaderOptions {
   correctGuesses: number;
@@ -41,6 +42,12 @@ export function TagsGuessFormHeader({
       <p className="mb-3 text-xs leading-relaxed text-white/50 mt-1">
         Вводите 1 тег за попытку. У вас осталось {maxGuesses - guesses.length}{" "}
         попыток
+      </p>
+      <p className="mb-3 text-xs leading-relaxed text-white/50 mt-1">
+        Полный список тегов можно посмотреть{" "}
+        <Link to="/tag-list" className="text-white">
+          тут
+        </Link>
       </p>
     </>
   );

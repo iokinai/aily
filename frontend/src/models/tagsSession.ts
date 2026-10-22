@@ -1,4 +1,14 @@
 import { Artwork } from "./artwork";
+import { TagsPost } from "./tagsPost";
+
+export type TagsState =
+  | "going"
+  | {
+      finished: {
+        post: TagsPost;
+        finish: TagsFinish;
+      };
+    };
 
 export interface TagsRound {
   tag: string;
@@ -8,12 +18,6 @@ export interface TagsRound {
 export type TagsLoseReason = "not_guessed" | "surrender";
 
 export type TagsFinish = "win" | { lose: TagsLoseReason };
-
-export type TagsState =
-  | "going"
-  | {
-      finished: TagsFinish;
-    };
 
 export interface TagsSession {
   artwork: Artwork;

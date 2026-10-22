@@ -1,6 +1,7 @@
-import { TagsSession } from "@/models/tagsSession";
+import { TagsSession, TagsState } from "@/models/tagsSession";
 import { ProxyImage } from "./ProxyImage";
 import { ResultBadge } from "./ResultBadge";
+import { Link } from "react-router-dom";
 
 interface TagsHistoryItemOptions {
   entry: TagsSession;
@@ -11,6 +12,36 @@ export function TagsHistoryItem({
   entry,
   guessesToWin,
 }: TagsHistoryItemOptions) {
+  const isWin = (state: TagsState) => {
+    return (
+      typeof state === "object" &&
+      "finished" in state &&
+      state.finished.finish === "win"
+    );
+  };
+
+  const isSurrender = (state: TagsState) => {
+    return (
+      typeof state === "object" &&
+      "finished" in state &&
+      typeof state.finished === "object" &&
+      typeof state.finished.finish === "object" &&
+      state.finished.finish.lose == "surrender"
+    );
+  };
+
+  const loadTagsFromResult = (state: TagsState) => {
+    if (
+      typeof state !== "object" ||
+      !("finished" in state) ||
+      typeof state.finished !== "object"
+    ) {
+      return [];
+    }
+
+    return state.finished.post.tags.map((tag) => tag.tag_name);
+  };
+
   return (
     <article
       key={entry.artwork.path}
@@ -30,14 +61,23 @@ export function TagsHistoryItem({
             Угадано: {entry.rounds.map((v) => v.tag).join(" · ")}
           </p>
         )}
+        {isSurrender(entry.state) && (
+          <p className="mt-1 hidden truncate text-xs text-red-400 sm:block">
+            Вы сдались
+          </p>
+        )}
+        <p className="mt-1 text-xs text-white">
+          Теги: {loadTagsFromResult(entry.state).join(" · ")}
+        </p>
+        <Link
+          to={`https://danbooru.donmai.us/posts/${entry.artwork.danbooru_id}`}
+          className="mt-1 hidden text-xs text-zinc-400 sm:block"
+          target="_blank"
+        >
+          Открыть оригинал
+        </Link>
       </div>
-      <ResultBadge
-        success={
-          typeof entry.state === "object" &&
-          "finished" in entry.state &&
-          entry.state.finished === "win"
-        }
-      />
+      <ResultBadge success={isWin(entry.state)} />
     </article>
   );
 }

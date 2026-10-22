@@ -92,55 +92,98 @@ impl AilyGameController {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use std::sync::Arc;
-//     use std::time::{Duration, Instant};
-//     use tokio::sync::RwLock;
-//
-//     #[test]
-//     fn test_has_user_guessed_correctly() {
-//         let ai_post = AilyPost::new(1, 1, 1, true, true, "".to_string());
-//         let real_post = AilyPost::new(1, 1, 1, false, true, "".to_string());
-//
-//         assert!(has_user_guessed_correctly(&ai_post, true));
-//         assert!(!has_user_guessed_correctly(&ai_post, false));
-//
-//         assert!(has_user_guessed_correctly(&real_post, false));
-//         assert!(!has_user_guessed_correctly(&real_post, true));
-//     }
-//
-//     #[tokio::test]
-//     async fn test_update_session_after_guess() {
-//         let sessions = Arc::new(RwLock::new(HashMap::new()));
-//         let session_id = "test-uuid-123".to_string();
-//
-//         let initial_session = GameSession::new(
-//             vec![],
-//             vec![],
-//             Some(10),
-//             None,
-//             Instant::now() + Duration::from_secs(3600),
-//         );
-//         sessions
-//             .write()
-//             .await
-//             .insert(session_id.clone(), initial_session);
-//
-//         let new_post = Artwork::new(20, 1, "".to_string(), true);
-//
-//         let result =
-//             update_session_after_guess(sessions.clone(), &session_id, &new_post, true).await;
-//
-//         assert!(result.is_ok());
-//
-//         let sessions_read = sessions.read().await;
-//         let session = sessions_read.get(&session_id).unwrap();
-//
-//         assert_eq!(session.aily_current().cloned(), Some(20));
-//
-//         assert_eq!(session.aily_posts().len(), 1);
-//         assert_eq!(session.aily_posts()[0], (10, true));
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{get_new_session_exptime, mocks::db_mock::MockTestDatabase};
+    use std::collections::HashMap;
+    use tokio::sync::RwLock;
+
+    async fn setup_sessions(
+        session_id: &str,
+        current_artwork_id: i32,
+    ) -> Arc<RwLock<HashMap<String, GameSession>>> {
+        let sessions = Arc::new(RwLock::new(HashMap::new()));
+
+        let mut session = GameSession::new(vec![], vec![], get_new_session_exptime(), None, None);
+        session.set_aily_current(Some(current_artwork_id));
+
+        sessions
+            .write()
+            .await
+            .insert(session_id.to_string(), session);
+
+        sessions
+    }
+
+    #[tokio::test]
+    async fn test_make_guess_success() {
+        let session_id = "test_session".to_string();
+        let artwork_id = 42;
+
+        let sessions = setup_sessions(&session_id, artwork_id).await;
+
+        let mut mock_db = MockTestDatabase::new();
+
+        mock_db
+            .expect_get_post_by_artwork_id()
+            .with(mockall::predicate::eq(artwork_id))
+            .times(1)
+            .returning(|id| {
+                let post = AilyPost::new(id, 1, 1, true, true, String::from(""));
+                Ok(post)
+            });
+
+        let controller = AilyGameController::new(sessions, Arc::new(mock_db));
+
+        let result = controller.make_guess(&session_id, true).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_make_guess_invalid_session() {
+        let mock_db = MockTestDatabase::new();
+        let sessions = Arc::new(RwLock::new(HashMap::new()));
+        let controller = AilyGameController::new(sessions, Arc::new(mock_db));
+
+        let result = controller
+            .make_guess(&"non_existent".to_string(), true)
+            .await;
+
+        assert!(matches!(result, Err(AilyError::InvalidSession)));
+    }
+
+    #[tokio::test]
+    async fn test_load_artwork() {
+        let mut mock_db = MockTestDatabase::new();
+
+        mock_db
+            .expect_get_random_artwork()
+            .with(mockall::predicate::eq(false))
+            .times(1)
+            .returning(|_| Ok(Artwork::new(1, 1, "".to_string(), false)));
+
+        let controller =
+            AilyGameController::new(Arc::new(RwLock::new(HashMap::new())), Arc::new(mock_db));
+
+        let result = controller.load_artwork(false).await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_has_user_guessed_correctly() {
+        let controller = AilyGameController::new(
+            Arc::new(RwLock::new(HashMap::new())),
+            Arc::new(MockTestDatabase::new()),
+        );
+
+        let post = AilyPost::new(1, 1, 1, true, false, String::from(""));
+        let res = controller.has_user_guessed_correctly(&post, true);
+        assert!(res);
+
+        let post = AilyPost::new(1, 1, 1, false, false, String::from(""));
+        let res = controller.has_user_guessed_correctly(&post, true);
+        assert!(!res);
+    }
+}
