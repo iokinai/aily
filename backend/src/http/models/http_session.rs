@@ -1,12 +1,14 @@
 use aily_models::Session;
 use serde::Serialize;
 
-use crate::http::HttpAilyPost;
+use crate::http::{HttpAilySession, HttpArtwork, HttpTagsSession};
 
 #[derive(Serialize)]
 pub struct HttpSession {
-    prev: Vec<(HttpAilyPost, bool)>,
-    current: HttpAilyPost,
+    prev: Vec<HttpAilySession>,
+    tags_prev: Vec<HttpTagsSession>,
+    current: Option<HttpArtwork>,
+    tags_current: Option<HttpArtwork>,
 }
 
 impl From<&Session> for HttpSession {
@@ -15,11 +17,32 @@ impl From<&Session> for HttpSession {
         let prev = value
             .prev()
             .iter()
-            .map(|p| (HttpAilyPost::from(&p.0), p.1))
+            .map(|p| HttpAilySession::from(p))
             .collect();
 
-        let current = HttpAilyPost::from(value.current());
+        let tags_prev = value
+            .tags_prev()
+            .iter()
+            .map(|p| HttpTagsSession::from(p))
+            .collect();
 
-        HttpSession { prev, current }
+        let current = if let Some(c) = value.current() {
+            Some(HttpArtwork::from(c))
+        } else {
+            None
+        };
+
+        let tags_current = if let Some(c) = value.tags_current() {
+            Some(HttpArtwork::from(c))
+        } else {
+            None
+        };
+
+        HttpSession {
+            prev,
+            tags_prev,
+            current,
+            tags_current,
+        }
     }
 }

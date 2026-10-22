@@ -7,4 +7,5 @@ pub enum ErrorType {
     InvalidSession = 1,
     ProxyError = 2,
     Unknown = 3,
+    TagAlreadyUsed = 4,
 }

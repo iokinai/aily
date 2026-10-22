@@ -12,9 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     errors::{AilyError, HttpStatusCode, MaybeStatusCode, ProxyError},
-    game::{GameSession, global::get_session_by_id},
-    get_new_session_exptime,
-    http::{AppState, HttpSession, LoggedSession, ProxyQuery},
+    http::{AppState, HttpSession, LoggedSession, ProxyRequest},
     make_new_session_cookie,
 };
 
@@ -24,21 +22,16 @@ pub async fn start_new_session(
 ) -> Result<(CookieJar, Json<HttpSession>), AilyError> {
     let id = Uuid::new_v4().to_string();
 
-    let post = state
-        .database
-        .get_random_post(false)
-        .await
-        .inspect_err(|e| error!("Error while getting random post in start: {}", e))?;
-
-    let session = GameSession::new_with_current(*post.id(), get_new_session_exptime());
-
-    state.sessions.write().await.insert(id.clone(), session);
+    state
+        .global_game_controller
+        .make_and_save_new_session(&id)
+        .await;
 
     let cookies = cookies.add(make_new_session_cookie(id));
 
     Ok((
         cookies,
-        Json(HttpSession::from(&Session::new(vec![], post))),
+        Json(HttpSession::from(&Session::new(vec![], vec![], None, None))),
     ))
 }
 
@@ -48,11 +41,14 @@ pub async fn get_current_session(
 ) -> Result<(CookieJar, Json<HttpSession>), AilyError> {
     let session_id = logged_session.1;
 
-    let session = get_session_by_id(state.sessions.clone(), &session_id).await?;
+    let session = state
+        .global_game_controller
+        .get_session_by_id(&session_id)
+        .await?;
 
     let game_session = state
-        .database
-        .get_session(&session)
+        .global_game_controller
+        .game_session_to_global_session(&session)
         .await
         .inspect_err(|e| error!("Invalid session from database: {}", e))?;
 
@@ -61,7 +57,7 @@ pub async fn get_current_session(
 
 pub async fn proxy_image_handler(
     State(state): State<AppState>,
-    Query(query): Query<ProxyQuery>,
+    Query(query): Query<ProxyRequest>,
 ) -> Result<impl IntoResponse, AilyError> {
     let resp = state
         .http_request_client

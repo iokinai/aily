@@ -1,11 +1,13 @@
 use trl::Trl;
 
-use crate::AilyPost;
+use crate::{Artwork, TagsSession, aily_session::AilySession};
 
 #[derive(Trl)]
-#[getters]
+#[getters(option)]
 #[constructor]
 pub struct Session {
-    prev: Vec<(AilyPost, bool)>,
-    current: AilyPost,
+    prev: Vec<AilySession>,
+    tags_prev: Vec<TagsSession>,
+    current: Option<Artwork>,
+    tags_current: Option<Artwork>,
 }

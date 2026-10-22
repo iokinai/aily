@@ -1,7 +1,7 @@
-import { PageLayout } from "../components/PageLayout";
+import { PageLayout } from "@/components/PageLayout";
 import { AilyGame } from "./AilyGame";
-import { Api } from "../api/api";
-import { SessionData } from "../api/sessionData";
+import { Api } from "@/api/api";
+import { SessionData } from "@/models/sessionData";
 
 interface GamePageProps {
   session: SessionData;
