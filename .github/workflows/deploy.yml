@@ -19,9 +19,7 @@ jobs:
       - name: Build
         env:
           RUSTFLAGS: "-C target-cpu=ivybridge -C debuginfo=2 -mno-avx2"
-          CFLAGS: "-DMY_ASSEMBLER_IS_TOO_OLD_FOR_ADX_AVX2 -mno-avx2"
-          CXXFLAGS: "-DMY_ASSEMBLER_IS_TOO_OLD_FOR_ADX_AVX2"
-          AWS_LC_SYS_NO_JITTER_ENTROPY: 1
+          SYS_CFLAGS: "-DMY_ASSEMBLER_IS_TOO_OLD_FOR_ADX_AVX2 -mno-avx2"
         run: cargo build --release
       - name: Run tests
         run: cargo test --verbose
