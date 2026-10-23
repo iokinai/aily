@@ -19,9 +19,14 @@ use tower_http::cors::CorsLayer;
 use crate::{
     database::SqliteDatabase,
     environment::Environment,
+    game::{aily::AilyGameController, global::GlobalGameController, tags::TagsGameController},
     http::{
         AppState,
-        handlers::{get_current_session, make_guess, proxy_image_handler, start_new_session},
+        handlers::{
+            artwork_to_post, artwork_to_tags_post, get_current_session, get_tags_list,
+            load_artwork, load_tags_artwork, make_guess, proxy_image_handler, start_new_session,
+            tags_make_guess, tags_surrender,
+        },
     },
     session_garbage_collector::spawn_session_gc_task,
 };
@@ -31,6 +36,8 @@ mod environment;
 mod errors;
 mod game;
 mod http;
+#[cfg(test)]
+mod mocks;
 mod schema;
 mod session_garbage_collector;
 
@@ -62,6 +69,9 @@ fn run_migrations(conn: &mut SqliteConnection) {
         .unwrap();
 }
 
+const TAG_MAX_ROUNDS: u16 = 5;
+const TAG_TO_WIN: u16 = 3;
+
 #[tokio::main]
 async fn main() {
     let env = Environment::parse().unwrap();
@@ -82,10 +92,21 @@ async fn main() {
         .build()
         .unwrap();
 
+    let sessions = Arc::new(RwLock::new(HashMap::new()));
+
+    let database_arc = Arc::new(database);
+
     let state = AppState {
-        database: Arc::new(database),
-        sessions: Arc::new(RwLock::new(HashMap::new())),
+        sessions: sessions.clone(),
         http_request_client: Arc::new(client),
+        aily_game_controller: AilyGameController::new(sessions.clone(), database_arc.clone()),
+        global_game_controller: GlobalGameController::new(sessions.clone(), database_arc.clone()),
+        tags_game_controller: TagsGameController::new(
+            sessions.clone(),
+            database_arc.clone(),
+            TAG_MAX_ROUNDS,
+            TAG_TO_WIN,
+        ),
     };
 
     spawn_session_gc_task(state.clone());
@@ -106,12 +127,23 @@ async fn main() {
         .route("/session", get(get_current_session).post(start_new_session))
         .route("/proxy", get(proxy_image_handler));
 
-    let aily_routes = Router::new().route("/", post(make_guess));
+    let aily_routes = Router::new()
+        .route("/", get(load_artwork).post(make_guess))
+        .route("/artwork_to_post", get(artwork_to_post));
+
+    let tags_routes = Router::new()
+        .route("/", get(load_tags_artwork).post(tags_make_guess))
+        .route("/list", get(get_tags_list))
+        .route("/artwork_to_post", get(artwork_to_tags_post))
+        .route("/surrender", post(tags_surrender));
 
     let app = Router::new()
         .nest(
             "/api",
-            Router::new().merge(api_routes).nest("/aily", aily_routes),
+            Router::new()
+                .merge(api_routes)
+                .nest("/aily", aily_routes)
+                .nest("/tags", tags_routes),
         )
         .with_state(state)
         .layer(cors);

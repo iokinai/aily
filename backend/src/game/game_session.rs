@@ -1,61 +1,116 @@
 use std::time::Instant;
 
+use aily_models::TagsRound;
 use trl::Trl;
 
+use crate::game::{GameAilySession, GameTagsSession, game_tags_state::GameTagsState};
+
+// All posts vectors should ALWAYS contain the `artwork_id`, not the entity id
 #[derive(Trl, Clone, Debug)]
 #[constructor]
 pub struct GameSession {
     #[get]
-    #[get(mut ref, name = posts_mut)]
-    posts: Vec<(i32, bool)>,
-    #[set]
+    #[get(mut ref, name = aily_posts_mut)]
+    aily_posts: Vec<GameAilySession>,
     #[get]
-    current: i32,
+    #[get(mut ref, name = tag_posts_mut)]
+    tag_posts: Vec<GameTagsSession>,
     #[get]
     #[set]
     expires_at: Instant,
+    #[get(option)]
+    #[set(option)]
+    aily_current: Option<i32>,
+    #[get(option)]
+    #[set(option)]
+    tags_current: Option<i32>,
 }
 
 impl GameSession {
-    pub fn new_with_current(current: i32, expires_at: Instant) -> GameSession {
-        GameSession {
-            posts: vec![],
-            current,
-            expires_at,
-        }
+    pub fn append_aily_session(&mut self, artwork_id: i32, guessed_correctly: bool) {
+        self.aily_posts
+            .push(GameAilySession::new(artwork_id, guessed_correctly));
+    }
+
+    pub fn append_tags_session(
+        &mut self,
+        artwork_id: i32,
+        rounds: Vec<TagsRound>,
+        state: GameTagsState,
+    ) {
+        self.tag_posts
+            .push(GameTagsSession::new(artwork_id, rounds, state));
+    }
+
+    pub fn start_new_tags_session(&mut self, artwork_id: i32) {
+        self.tag_posts.push(GameTagsSession::new(
+            artwork_id,
+            vec![],
+            GameTagsState::Going,
+        ));
+        self.tags_current = Some(artwork_id);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
-
-    use time::Duration;
-
-    use crate::game::GameSession;
+    use crate::{
+        game::{GameSession, game_tags_state::GameTagsState},
+        get_new_session_exptime,
+    };
 
     #[test]
-    fn test_new_session() {
-        let posts = vec![(1, true), (2, false)];
-        let current = 3;
-        let expires_at = Instant::now() + Duration::seconds(10);
+    fn test_append_aily_session() {
+        let mut session = GameSession::new(vec![], vec![], get_new_session_exptime(), None, None);
 
-        let session = GameSession::new(posts.clone(), current, expires_at);
+        session.append_aily_session(2, false);
 
-        assert_eq!(*session.posts(), posts);
-        assert_eq!(*session.current(), current);
-        assert_eq!(*session.expires_at(), expires_at);
+        assert_eq!(session.aily_posts().len(), 1);
+        assert_eq!(*session.aily_posts().get(0).unwrap().artwork_id(), 2);
+        assert_eq!(
+            *session.aily_posts().get(0).unwrap().guessed_correctly(),
+            false
+        );
     }
 
     #[test]
-    fn test_new_session_with_current() {
-        let current = 1;
-        let expires_at = Instant::now() + Duration::seconds(10);
+    fn test_append_tags_session() {
+        let mut session = GameSession::new(vec![], vec![], get_new_session_exptime(), None, None);
 
-        let session = GameSession::new_with_current(current, expires_at);
+        session.append_tags_session(2, vec![], GameTagsState::Going);
 
-        assert_eq!(*session.posts(), vec![]);
-        assert_eq!(*session.current(), current);
-        assert_eq!(*session.expires_at(), expires_at);
+        assert_eq!(session.tag_posts().len(), 1);
+        assert_eq!(*session.tag_posts().get(0).unwrap().artwork_id(), 2);
+        assert_eq!(session.tag_posts().get(0).unwrap().rounds().len(), 0);
+
+        let is_state_going =
+            if let GameTagsState::Going = session.tag_posts().get(0).unwrap().state() {
+                true
+            } else {
+                false
+            };
+
+        assert!(is_state_going)
+    }
+
+    #[test]
+    fn test_start_new_tags_session() {
+        let mut session = GameSession::new(vec![], vec![], get_new_session_exptime(), None, None);
+
+        session.start_new_tags_session(2);
+
+        assert_eq!(session.tag_posts().len(), 1);
+        assert_eq!(*session.tag_posts().get(0).unwrap().artwork_id(), 2);
+        assert_eq!(*session.tags_current().unwrap(), 2);
+        assert_eq!(session.tag_posts().get(0).unwrap().rounds().len(), 0);
+
+        let is_state_going =
+            if let GameTagsState::Going = session.tag_posts().get(0).unwrap().state() {
+                true
+            } else {
+                false
+            };
+
+        assert!(is_state_going)
     }
 }

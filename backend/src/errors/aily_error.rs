@@ -5,7 +5,9 @@ use axum::{
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::errors::{ErrorType, NotFound, ProxyError, http_error_body::HttpErrorBody};
+use crate::errors::{
+    ErrorType, NotFound, ProxyError, TagAlreadyUsed, http_error_body::HttpErrorBody,
+};
 
 #[derive(Error, Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -18,6 +20,8 @@ pub enum AilyError {
     ProxyError(#[from] ProxyError),
     #[error("Unknown error occured")]
     Unknown,
+    #[error("Tag already used: {0}")]
+    TagAlreadyUsed(#[from] TagAlreadyUsed),
 }
 
 impl IntoResponse for AilyError {
@@ -42,6 +46,11 @@ impl IntoResponse for AilyError {
                 ErrorType::Unknown,
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 serde_json::Value::Null,
+            ),
+            AilyError::TagAlreadyUsed(tag_already_used) => (
+                ErrorType::TagAlreadyUsed,
+                axum::http::StatusCode::BAD_REQUEST,
+                serde_json::to_value(tag_already_used).unwrap_or(serde_json::Value::Null),
             ),
         };
 
