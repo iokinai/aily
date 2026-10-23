@@ -45,7 +45,11 @@ impl Environment {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Mutex;
+
     use super::*;
+
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     fn clear_env() {
         unsafe {
@@ -58,6 +62,7 @@ mod tests {
 
     #[test]
     fn test_parse_success() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         clear_env();
         unsafe {
             env::set_var("AILY_DATABASE", "sqlite::memory:");
@@ -78,6 +83,7 @@ mod tests {
 
     #[test]
     fn test_parse_variable_not_found() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         clear_env();
         unsafe {
             env::set_var("AILY_DANBOORU_ID", "42");
@@ -92,6 +98,7 @@ mod tests {
 
     #[test]
     fn test_parse_incorrect_type() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         clear_env();
         unsafe {
             env::set_var("AILY_DATABASE", "sqlite::memory:");
