@@ -22,3 +22,4 @@ target/
 *.db
 dist/
 .diesel_lock
+dbg/
