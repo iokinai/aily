@@ -40,7 +40,7 @@ jobs:
           username: ${{secrets.REMOTE_USER}}
           password: ${{secrets.SSH_KEY}}
           port: 22
-          scripts: "systemctl restart aily"
+          script: "systemctl restart aily"
 
   frontend:
     runs-on: ubuntu-latest
@@ -76,4 +76,4 @@ jobs:
           username: ${{secrets.REMOTE_USER}}
           password: ${{secrets.SSH_KEY}}
           port: 22
-          scripts: "systemctl restart nginx"
+          script: "systemctl restart nginx"
