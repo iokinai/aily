@@ -19,7 +19,7 @@ jobs:
       - name: Build
         env:
           RUSTFLAGS: "-C target-cpu=ivybridge -C debuginfo=2"
-          AWS_LC_SYS_CFLAGS: "-march=ivybridge -mno-avx"
+          AWS_LC_SYS_CFLAGS: "-march=ivybridge -mno-avx2"
         run: cargo build --release
       - name: Run tests
         run: cargo test --verbose
